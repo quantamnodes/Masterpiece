@@ -6,6 +6,14 @@ import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
 import { Filter, SlidersHorizontal, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+type SortOption = "newest" | "price_asc" | "price_desc" | "name_asc";
+
+const SORT_OPTIONS: SortOption[] = ["newest", "price_asc", "price_desc", "name_asc"];
+
+function isSortOption(value: string): value is SortOption {
+  return (SORT_OPTIONS as string[]).includes(value);
+}
+
 export default function Products() {
   const [location] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
@@ -13,7 +21,7 @@ export default function Products() {
 
   const [category, setCategory] = useState<string | undefined>(initialCategory);
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc" | "name_asc">("newest");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Sync state when URL changes externally
@@ -121,7 +129,7 @@ export default function Products() {
               <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
               <select 
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => { if (isSortOption(e.target.value)) setSortBy(e.target.value); }}
                 className="bg-transparent text-sm font-mono uppercase text-foreground focus:outline-none cursor-pointer appearance-none pr-4"
               >
                 <option value="newest">Newest First</option>

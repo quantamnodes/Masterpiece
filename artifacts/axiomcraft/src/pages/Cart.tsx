@@ -1,12 +1,23 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { useCartManager } from "@/hooks/use-cart-manager";
-import { Trash2, ArrowRight, ShieldAlert, Cpu } from "lucide-react";
+import { Trash2, ArrowRight, ShieldAlert, Cpu, Bell, BellRing } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Cart() {
   const { cart, isLoading, isUpdating, updateQuantity, removeItem, clearCart } = useCartManager();
   const { toast } = useToast();
+  const [notifiedItems, setNotifiedItems] = useState<Set<number>>(new Set());
+
+  const handleNotifyMe = (itemId: number, productName: string) => {
+    setNotifiedItems((prev) => new Set(prev).add(itemId));
+    toast({
+      title: "Restock Alert Set",
+      description: `You'll be notified when ${productName} becomes available.`,
+      className: "bg-card border-primary",
+    });
+  };
 
   const handleUpdateQuantity = async (itemId: number, newQty: number) => {
     if (newQty < 1) return;
@@ -77,14 +88,19 @@ export default function Cart() {
                     
                     {/* Product Info */}
                     <div className="sm:col-span-6 flex items-center gap-4">
-                      <div className="w-20 h-20 bg-muted shrink-0 rounded-sm overflow-hidden">
+                      <div className="w-20 h-20 bg-muted shrink-0 rounded-sm overflow-hidden relative">
                         <img 
                           src={item.product.imageUrl || `https://picsum.photos/seed/${item.product.slug}/200/200`} 
                           alt={item.product.name}
-                          className="w-full h-full object-cover mix-blend-luminosity"
+                          className={`w-full h-full object-cover mix-blend-luminosity ${item.product.stock <= 0 ? 'opacity-40' : ''}`}
                         />
+                        {item.product.stock <= 0 && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-[9px] font-mono font-bold uppercase tracking-wider bg-destructive/90 text-destructive-foreground px-1 py-0.5">OUT OF STOCK</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col gap-0.5">
                         <span className="text-xs font-mono text-primary uppercase">{item.product.category}</span>
                         <Link href={`/products/${item.product.id}`} className="font-heading font-bold uppercase text-lg hover:text-primary transition-colors line-clamp-1">
                           {item.product.name}
@@ -92,13 +108,29 @@ export default function Cart() {
                         {item.variantName && (
                           <span className="text-xs font-mono text-muted-foreground">Config: {item.variantName}</span>
                         )}
-                        <span className="sm:hidden mt-2 font-mono font-bold">${item.unitPrice.toLocaleString()}</span>
+                        <span className="sm:hidden mt-1 font-mono font-bold">${item.unitPrice.toLocaleString()}</span>
+                        {item.product.stock <= 0 && (
+                          <button
+                            onClick={() => handleNotifyMe(item.id, item.product.name)}
+                            disabled={notifiedItems.has(item.id)}
+                            className={`mt-1 inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider transition-colors w-fit ${
+                              notifiedItems.has(item.id)
+                                ? 'text-primary cursor-default'
+                                : 'text-muted-foreground hover:text-primary cursor-pointer'
+                            }`}
+                          >
+                            {notifiedItems.has(item.id)
+                              ? <><BellRing className="w-3 h-3" /> Alert Active</>
+                              : <><Bell className="w-3 h-3" /> Notify Me</>
+                            }
+                          </button>
+                        )}
                       </div>
                     </div>
 
                     {/* Quantity Controls */}
                     <div className="sm:col-span-3 flex justify-center">
-                      <div className="flex items-center border border-border bg-background rounded-sm">
+                      <div className={`flex items-center border border-border bg-background rounded-sm ${item.product.stock <= 0 ? 'opacity-40 pointer-events-none' : ''}`}>
                         <button 
                           onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
                           className="px-3 py-1 text-muted-foreground hover:text-primary font-mono transition-colors"

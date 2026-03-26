@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { db } from "@workspace/db";
 import { cartItemsTable, cartSessionsTable, productsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 const router: IRouter = Router();
@@ -140,16 +140,23 @@ router.post("/cart", async (req, res) => {
       }
     }
 
-    const existingItems = await db
+    const normalizedVariantId = variantId ?? null;
+
+    const existingItemsQuery = db
       .select()
       .from(cartItemsTable)
       .where(
         and(
           eq(cartItemsTable.sessionId, sessionId),
           eq(cartItemsTable.productId, productId),
+          normalizedVariantId !== null
+            ? eq(cartItemsTable.variantId, normalizedVariantId)
+            : isNull(cartItemsTable.variantId),
         ),
       )
       .limit(1);
+
+    const existingItems = await existingItemsQuery;
 
     if (existingItems.length > 0) {
       const existing = existingItems[0]!;
@@ -161,7 +168,7 @@ router.post("/cart", async (req, res) => {
       await db.insert(cartItemsTable).values({
         sessionId,
         productId,
-        variantId: variantId ?? null,
+        variantId: normalizedVariantId,
         variantName,
         quantity,
         unitPrice: unitPrice.toFixed(2),
@@ -186,10 +193,14 @@ router.patch("/cart/:itemId", async (req, res) => {
       return;
     }
 
+    const whereClause = sessionId
+      ? and(eq(cartItemsTable.id, itemId), eq(cartItemsTable.sessionId, sessionId))
+      : eq(cartItemsTable.id, itemId);
+
     const items = await db
       .select()
       .from(cartItemsTable)
-      .where(eq(cartItemsTable.id, itemId))
+      .where(whereClause)
       .limit(1);
 
     if (items.length === 0) {
@@ -216,19 +227,36 @@ router.patch("/cart/:itemId", async (req, res) => {
   }
 });
 
+router.delete("/cart/clear", async (req, res) => {
+  try {
+    const sessionId = await ensureSession(req.query["sessionId"] as string | undefined);
+    await db.delete(cartItemsTable).where(eq(cartItemsTable.sessionId, sessionId));
+    const cart = await buildCartResponse(sessionId);
+    res.json(cart);
+  } catch (err) {
+    req.log.error({ err }, "Error clearing cart");
+    res.status(500).json({ error: "internal_error", message: "Failed to clear cart" });
+  }
+});
+
 router.delete("/cart/:itemId", async (req, res) => {
   try {
     const itemId = parseInt(req.params["itemId"] ?? "0");
+    const sessionId = req.query["sessionId"] as string | undefined;
 
     if (isNaN(itemId)) {
       res.status(400).json({ error: "bad_request", message: "Invalid item ID" });
       return;
     }
 
+    const whereClause = sessionId
+      ? and(eq(cartItemsTable.id, itemId), eq(cartItemsTable.sessionId, sessionId))
+      : eq(cartItemsTable.id, itemId);
+
     const items = await db
       .select()
       .from(cartItemsTable)
-      .where(eq(cartItemsTable.id, itemId))
+      .where(whereClause)
       .limit(1);
 
     if (items.length === 0) {
@@ -244,18 +272,6 @@ router.delete("/cart/:itemId", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Error removing cart item");
     res.status(500).json({ error: "internal_error", message: "Failed to remove cart item" });
-  }
-});
-
-router.delete("/cart/clear", async (req, res) => {
-  try {
-    const sessionId = await ensureSession(req.query["sessionId"] as string | undefined);
-    await db.delete(cartItemsTable).where(eq(cartItemsTable.sessionId, sessionId));
-    const cart = await buildCartResponse(sessionId);
-    res.json(cart);
-  } catch (err) {
-    req.log.error({ err }, "Error clearing cart");
-    res.status(500).json({ error: "internal_error", message: "Failed to clear cart" });
   }
 });
 
