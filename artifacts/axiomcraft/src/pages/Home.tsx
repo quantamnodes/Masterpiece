@@ -6,9 +6,8 @@ import {
   useInView,
   useMotionValue,
   useSpring,
-  AnimatePresence,
 } from "framer-motion";
-import { Cpu, Zap, Shield, ArrowRight, ChevronRight, Microchip } from "lucide-react";
+import { Cpu, Zap, Shield, ArrowRight, ChevronRight } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
@@ -348,46 +347,114 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* ─── FEATURED PRODUCTS (horizontal scroll strip) ─────────────── */}
-      <section ref={featuredRef} className="py-24 bg-card/20 border-y border-border relative z-20 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+      {/* ─── NEW ACQUISITIONS 3×3 GRID ───────────────────────────────── */}
+      <section ref={featuredRef} className="py-24 bg-card/20 border-y border-border relative z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="flex items-end justify-between"
+            className="flex items-end justify-between mb-12"
           >
             <div>
               <h2 className="text-3xl md:text-4xl font-heading font-bold uppercase tracking-tight mb-2">New Acquisitions</h2>
               <div className="h-[2px] w-20 bg-gradient-to-r from-primary to-transparent" />
             </div>
-            <Link to="/products" className="hidden md:flex items-center gap-2 text-primary font-mono text-sm hover:underline">
+            <Link to="/products" className="flex items-center gap-2 text-primary font-mono text-sm hover:underline">
               VIEW ALL <ChevronRight className="w-4 h-4" />
             </Link>
           </motion.div>
-        </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-6 pb-4" style={{ width: "max-content" }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {isLoading
-              ? Array(6).fill(0).map((_, i) => (
-                  <div key={i} className="w-72 shrink-0">
+              ? Array(9).fill(0).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
                     <ProductCardSkeleton />
-                  </div>
+                  </motion.div>
                 ))
-              : featuredData?.products.slice(0, 8).map((product, i) => (
+              : featuredData?.products.slice(0, 9).map((product, i) => (
                   <motion.div
                     key={product.id}
-                    initial={{ opacity: 0, x: 40 }}
-                    whileInView={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-40px" }}
                     transition={{ duration: 0.5, delay: i * 0.07 }}
-                    className="w-72 shrink-0"
                   >
                     <ProductCard product={product} />
                   </motion.div>
                 ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── TESTIMONIALS ─────────────────────────────────────────────── */}
+      <section className="py-24 relative z-20 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(0,240,255,0.04),transparent_70%)] pointer-events-none" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-5xl font-heading font-bold uppercase tracking-tight mb-4">Field Reports</h2>
+            <p className="text-muted-foreground font-mono">From operators running our hardware</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { name: "DR_APEX", tier: "Platinum", rating: 5, text: "The X870E Apex is a beast. Running AM5 at 6.4GHz all-core with thermals that don't flinch. Zero instability in 4 months of 24/7 operation." },
+              { name: "VECTORFIELD_77", tier: "Gold", rating: 5, text: "Switched from another vendor — the difference is night and day. Support team had my RMA processed in 6 hours. Unmatched service." },
+              { name: "NULL_POINTER", tier: "Silver", rating: 5, text: "RTX 5090 FE edition ran out of stock everywhere else. AxiomCraft had it in hand and shipped same day. My render times halved immediately." },
+              { name: "SIGMA_BUILD", tier: "Platinum", rating: 5, text: "The PC Builder tool actually saved me from a compatibility nightmare. Auto-flagged my PSU wattage gap before I ordered. Incredible attention to detail." },
+              { name: "TESSERA_LAB", tier: "Gold", rating: 5, text: "We equip our entire studio through AxiomCraft. Bulk pricing, priority support, and every shipment arrives perfectly packaged. Non-negotiable vendor." },
+              { name: "CIPHER_X9", tier: "Bronze", rating: 4, text: "First build with these guys. Walked me through the entire AM5 selection via live chat. Ended up with a sub-$800 rig that punches well above weight." },
+            ].map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                whileHover={{ y: -4 }}
+                className="border border-border bg-card/50 rounded-sm p-6 relative overflow-hidden group hover:border-primary/30 transition-colors"
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100"
+                  transition={{ duration: 0.3 }}
+                />
+                <div className="flex items-center gap-1 mb-4">
+                  {Array(t.rating).fill(0).map((_, si) => (
+                    <motion.div
+                      key={si}
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.3 + i * 0.05 + si * 0.05 }}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-primary fill-primary" />
+                    </motion.div>
+                  ))}
+                </div>
+                <p className="font-sans text-sm text-muted-foreground leading-relaxed mb-6">"{t.text}"</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-mono text-sm font-bold">{t.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground uppercase">{t.tier} Operator</p>
+                  </div>
+                  <div className={`w-8 h-8 rounded-sm border flex items-center justify-center ${t.tier === "Platinum" ? "border-primary/40 bg-primary/10 text-primary" : t.tier === "Gold" ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-400" : t.tier === "Silver" ? "border-slate-400/40 bg-slate-400/10 text-slate-400" : "border-amber-600/40 bg-amber-600/10 text-amber-600"}`}>
+                    <Shield className="w-4 h-4" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>

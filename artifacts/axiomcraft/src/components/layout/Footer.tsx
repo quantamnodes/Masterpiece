@@ -31,11 +31,13 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-heading font-bold uppercase tracking-wider mb-4 text-foreground">Company</h4>
+            <h4 className="font-heading font-bold uppercase tracking-wider mb-4 text-foreground">Explore</h4>
             <ul className="space-y-3 mb-6">
+              <li><Link to="/deals" className="text-muted-foreground hover:text-primary transition-colors text-sm">Deal Vault</Link></li>
+              <li><Link to="/build" className="text-muted-foreground hover:text-primary transition-colors text-sm">PC Builder</Link></li>
+              <li><Link to="/compare" className="text-muted-foreground hover:text-primary transition-colors text-sm">Compare Hardware</Link></li>
               <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact Us</Link></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">About</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Careers</a></li>
+              <li><Link to="/account" className="text-muted-foreground hover:text-primary transition-colors text-sm">My Account</Link></li>
             </ul>
             <h4 className="font-heading font-bold uppercase tracking-wider mb-4 text-foreground">Connect</h4>
             <div className="flex gap-4">

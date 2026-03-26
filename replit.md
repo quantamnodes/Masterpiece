@@ -96,13 +96,27 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 
 AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always dark mode.
 
-- 4 pages: Home (cinematic hero, bento grid, stat counters), Products (catalog + filters), Product Detail (spec table, variant switcher, add-to-cart), Cart (line items, order summary)
-- Design: Brutalist luxury / futuristic noir — #050505 bg, #00F0FF cyan accent, #F04444 red accent
-- Typography: Space Grotesk (headings), Inter (body), JetBrains Mono (specs/numbers)
-- Animations: Framer Motion scroll-linked reveals, spring micro-interactions
-- State: Zustand cart store with sessionId persisted to localStorage
-- API: Uses `@workspace/api-client-react` React Query hooks for all data fetching
-- Seed data: `pnpm --filter @workspace/scripts run seed` — populates 6 categories, 20 hardware products
+**Pages (10+):**
+- Home — cinematic hero, bento grid, stat counters, 3×3 New Acquisitions grid, Field Reports testimonials
+- Products — catalog with category/sort filters, search
+- Product Detail — spec table, variant switcher, add-to-cart, related products
+- Cart — line items, order summary, clear cart
+- Contact — support form
+- Account — login/signup tabs, profile with tier badge, spending progress bar, order history
+- Deals — Deal Vault with discount badges, savings counter, animated deal cards
+- PC Builder — pre-configured build presets + per-slot component selector with live price total
+- Compare — side-by-side spec table for up to 3 products
+- Platinum — tier-gated secret page for Platinum operators with classified deals
+
+**Design:** Brutalist luxury / futuristic noir — #050505 bg, #00F0FF cyan, #F04444 red accent
+**Typography:** Space Grotesk (headings), Inter (body), JetBrains Mono (specs/numbers)
+**Animations:** Framer Motion scroll-linked reveals, spring micro-interactions, staggered entrances
+**State:** Zustand cart store + user store (both persisted to localStorage); TIER_CONFIG (Bronze/Silver/Gold/Platinum)
+**Auth:** bcryptjs + express-session; POST /api/auth/register|login|logout, GET /api/auth/me
+**Navbar:** Dropdown menus (Hardware → categories, Tools → PC Builder/Compare/Deals), user dropdown with tier badge, search overlay, animated cart badge, mobile slide-over
+**API patterns:** API_BASE = `import.meta.env.BASE_URL.replace(/\/$/, "") + "/api"`; Product images: `https://picsum.photos/seed/{slug}/800/600`
+**After DB schema changes:** rebuild declarations: `cd lib/db && pnpm exec tsc -p tsconfig.json`
+**Seed:** `pnpm --filter @workspace/scripts run seed` — populates 6 categories, 20 hardware products
 
 ### `scripts` (`@workspace/scripts`)
 

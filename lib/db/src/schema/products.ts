@@ -66,6 +66,29 @@ export const cartItemsTable = pgTable("cart_items", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const usersTable = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  tier: text("tier").notNull().default("bronze"), // bronze | silver | gold | platinum
+  totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).notNull().default("0"),
+  purchaseCount: integer("purchase_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const reviewsTable = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  productId: integer("product_id").notNull(),
+  rating: integer("rating").notNull().default(5),
+  title: text("title").notNull().default(""),
+  body: text("body").notNull(),
+  reviewer: text("reviewer").notNull().default("Anonymous"),
+  verified: boolean("verified").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertProductSchema = createInsertSchema(productsTable).omit({
   id: true,
   createdAt: true,
