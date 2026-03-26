@@ -13,7 +13,7 @@ async function seedAccessCodes() {
     {
       code: "AXIOM-OWNER-22015",
       type: "owner",
-      label: "Bootstrap Owner Code",
+      label: "Bootstrap Owner",
       createdBy: 4,
     },
     {

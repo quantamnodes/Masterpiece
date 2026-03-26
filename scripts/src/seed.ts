@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
-import { productsTable, categoriesTable, cartItemsTable, cartSessionsTable } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { productsTable, categoriesTable, cartItemsTable, cartSessionsTable, accessCodesTable } from "@workspace/db";
+import { sql, eq } from "drizzle-orm";
 
 async function seed() {
   console.log("Seeding AxiomCraft database...");
@@ -617,9 +617,27 @@ async function seed() {
     },
   ]);
 
+  // Seed bootstrap access codes (idempotent — skips if already exist)
+  const bootstrapCodes: Array<{
+    code: string;
+    type: "owner" | "manager" | "employee";
+    label: string;
+    createdBy: number;
+  }> = [
+    { code: "AXIOM-OWNER-22015", type: "owner", label: "Bootstrap Owner", createdBy: 1 },
+    { code: "AXIOM-OWNER-SYSTEM", type: "owner", label: "System Bootstrap Code", createdBy: 1 },
+  ];
+  for (const entry of bootstrapCodes) {
+    const existing = await db.select().from(accessCodesTable).where(eq(accessCodesTable.code, entry.code)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(accessCodesTable).values({ code: entry.code, type: entry.type, label: entry.label, createdBy: entry.createdBy, active: true, branchId: null });
+    }
+  }
+
   console.log("✅ AxiomCraft database seeded successfully!");
   console.log("   - 6 categories");
   console.log("   - 20 products across all categories");
+  console.log("   - 2 bootstrap owner access codes");
   process.exit(0);
 }
 
