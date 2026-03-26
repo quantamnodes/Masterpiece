@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── axiomcraft/         # AxiomCraft e-commerce React + Vite frontend
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -91,6 +92,20 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/axiomcraft` (`@workspace/axiomcraft`)
+
+AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always dark mode.
+
+- 4 pages: Home (cinematic hero, bento grid, stat counters), Products (catalog + filters), Product Detail (spec table, variant switcher, add-to-cart), Cart (line items, order summary)
+- Design: Brutalist luxury / futuristic noir — #050505 bg, #00F0FF cyan accent, #F04444 red accent
+- Typography: Space Grotesk (headings), Inter (body), JetBrains Mono (specs/numbers)
+- Animations: Framer Motion scroll-linked reveals, spring micro-interactions
+- State: Zustand cart store with sessionId persisted to localStorage
+- API: Uses `@workspace/api-client-react` React Query hooks for all data fetching
+- Seed data: `pnpm --filter @workspace/scripts run seed` — populates 6 categories, 20 hardware products
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+- `pnpm --filter @workspace/scripts run seed` — seeds AxiomCraft database with hardware products

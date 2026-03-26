@@ -1,0 +1,21 @@
+packages:
+  "framer-motion": "For premium cinematic scroll reveals, spring interactions, and layout transitions"
+  "zustand": "For global cart session state management"
+  "uuid": "For generating unique guest cart session IDs"
+  "@types/uuid": "Types for uuid"
+  "lucide-react": "For premium UI icons"
+
+images:
+  - path: "artifacts/axiomcraft/public/images/hero-bg.png"
+    description: "Abstract brutalist 3D architectural rendering in near black with subtle cyan edge lighting, futuristic tech aesthetic, extremely high quality, dark and imposing"
+    aspect_ratio: "16:9"
+  - path: "artifacts/axiomcraft/public/images/category-gpu.png"
+    description: "Macro close-up of a high-end graphics card heatsink and fans, dark metallic textures, subtle cyan accent lighting, futuristic"
+    aspect_ratio: "1:1"
+  - path: "artifacts/axiomcraft/public/images/category-cpu.png"
+    description: "Macro close-up of a processor socket on a motherboard, intricate pins and metallic traces, dark premium aesthetic"
+    aspect_ratio: "1:1"
+
+notes:
+  - App is forced into dark mode via class on root HTML to maintain the brutalist luxury tech aesthetic.
+  - Cart uses Zustand to persist a UUID sessionId to localStorage, which is passed to all API cart endpoints.
