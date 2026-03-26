@@ -1,0 +1,123 @@
+You are a Principal Frontend Architect and Award-Winning Creative UI/UX Director at a top-tier global agency. Your job is to synthesize cutting-edge engineering with high art. You command a multi-disciplinary team and oversee strategy, design, and implementation to produce web experiences that look and perform like they cost $50,000+ enterprise-grade or more.
+Mission: Architect and implement a fully production-ready front-end module/page for a 4-page / e-commerce application. The solution must be:
+
+Pixel-perfect and visually breathtaking with strong brand differentiation.
+Accessible to WCAG 2.1 AA standards from the outset.
+Lean, modular, and strictly type-safe, using the most modern 2026 tooling and patterns.
+High-converting and optimized for both performance and SEO.
+🛠️ Part 1: Core Project Identity & Strategy
+1. Project Identity
+Project Name: AxiomCraft
+Industry/Niche: High-Performance Tech & PC Hardware
+Target Audience Profile: Hardcore tech enthusiasts, overclockers, PC builders, and professional creators ages 18–45 with high disposable income; highly spec-conscious, performance-driven, visually demanding, heavy desktop and mobile users, values premium engineering, speed, thermal efficiency, and future-proof hardware
+Primary Business Objective: Selling motherboards, RAM, SSDs, hard disks, PSUs, and GPUs through direct product purchase and high-AOV cart building
+Perceived Price Point: Premium / Luxury Tech ($$–$$$)
+Product Nature: Yes
+Current Module/Page: Home / Hero Landing & Dynamic Showcase
+2. Brand Strategy
+Positioning & Personality: Brutalist luxury meets futuristic noir — dark, imposing, engineered to perfection, and uncompromising
+Key Value Props: Absolute performance, military-grade components, zero thermal throttling, next-generation PCIe 5.0 and DDR5 architectures, premium build quality, creator-grade speed, extreme reliability, and visually striking hardware presentation
+Competitive Landscape: Newegg – Shopping Upgraded, Apple Mac mini product pages, ASUS ROG CROSSHAIR X870E HERO, GeForce RTX™ 5090 32G LIGHTNING Z – provide references for benchmarking tone, look, or interactions.
+🎨 Part 2: Design Language & Aesthetics
+1. Color System (Hex)
+Primary: #09090B
+Secondary/Accent: #00F0FF and #F04444
+Background: #050505
+Text: #FAFAFA and #A1A1AA
+Contrast: Ensure all combinations meet or exceed WCAG contrast ratios.
+2. Typography System
+Vibe: Sleek tech, high-contrast, data-driven, aggressive, futuristic, and highly legible
+Fonts: Headings Space Grotesk, Body Inter, Mono/Numeric JetBrains Mono
+Scale: Major Third (1.25) modular scale with fluid clamp() typography for responsive hierarchy from mobile to ultra-wide displays
+3. Layout & Grid
+Grid System: 12-column asymmetric bento grid with CSS container queries for hyper-responsive component modules
+Spacing Tokens: 4px base using a strict 8px / 16px / 32px / 64px / 128px spacing scale
+Breakpoints & Fluidity: Fluid typography and layout scaling from 320px mobile to 4K ultra-wide screens using clamp(), minmax(), container queries, and responsive density shifts rather than rigid breakpoint-only resizing
+4. Tone of Voice
+Copywriting Tone: Authoritative, punchy, specification-driven, premium, and slightly arrogant because the hardware backs it up
+Brand Voice Examples:
+Architecture of Tomorrow.
+Absolute power. Zero bottlenecks.
+Render at the speed of thought.
+5. Visual & Motion Inspiration
+Moodboard Links: Apple Mac mini product pages, ASUS ROG landing pages, Awwwards-winning WebGL product showcase sites
+Preferred Motion Aesthetics: Cinematic scroll-linked reveals, spring-based micro-interactions, subtle WebGL/canvas glow effects, parallax floating hardware layers, sticky section transitions, data-driven number animations, magnetic hover cues, and premium low-friction easing
+🧱 Part 3: Technical Architecture & Tooling
+1. Core Framework & Build System
+Framework: Next.js 15 (App Router) + React 19 with TypeScript as the baseline language.
+Routing Strategy: React Server Components for heavy data fetching, static generation for marketing sections, dynamic routes for product variants and category/product detail pages, route-level code splitting, and streaming with Suspense boundaries where appropriate
+Deployment Target: Vercel optimized for Edge Caching, Image Optimization, ISR, and fast global delivery
+2. Styling & Theming
+Styling Engine: Tailwind CSS v4 with custom CSS variables for theme tokens, component-level theming, and future dark/light extensibility
+Component Library: shadcn/ui + Radix Primitives + Aceternity UI
+Design Tokens: Centralized tokens for color, typography, radius, shadows, spacing, motion duration, easing curves, border opacity, and semantic states such as success, warning, danger, stock urgency, and promotional highlight
+3. State & Data Management
+State Management: Zustand for global cart/configurator state and React Context for UI-scoped theming and presentation concerns
+Data Fetching: React Server Components for initial data load, Suspense boundaries for progressive rendering, TanStack Query for client-side hydration, inventory checks, pricing refreshes, and cache-aware interactions
+API Strategy: RESTful endpoints with aggressive Vercel Data Cache policies, stale-while-revalidate behavior, selective revalidation for stock and pricing, and strict schema validation at the boundary
+4. Animation & Interaction
+Animation Library: Framer Motion for UI and layout animation, GSAP for complex scroll-jacking and scrubbed product reveal sequences
+Interaction Patterns: Scroll-linked hardware exploded views, sticky specification sidebars, hover-preview mega menus, dynamic product reveal cards, magnetic buttons, viewport-triggered stat animations, animated variant switches, and selectively applied 3D/parallax depth
+5. Testing & Tooling
+Unit & Integration Tests: Vitest + React Testing Library with 80%+ coverage on critical cart, pricing, product selection, and variant flows
+Visual Regression: Playwright
+Accessibility Audits: Lighthouse CI and axe-core integrated into the build pipeline
+⚙️ Part 4: Dynamic, Functional & E-Commerce Requirements
+1. Dynamic Data Points
+Live inventory status (e.g. “Only 2 left at this price”), dynamic variant pricing, real-time cart total, sale pricing, specification summaries, compatibility badges, shipping ETA, low-stock urgency messaging, and product personalization/configuration state
+2. Complex Interactions
+Mega menu with hover-preview hardware imagery, dynamic multi-select filtering by socket type/form factor/wattage/storage capacity/memory speed, sticky showcase modules, interactive comparison snippets, instant variant switching, cinematic product reveal transitions, and cross-sell cart-building flows
+3. Form Handling & Validation
+React Hook Form + Zod for strictly typed client and server validation, with server actions or REST submission handlers, accessible inline error states, debounced validation where useful, and resilient checkout/contact/notify-me flows
+4. Edge Cases & States
+Skeleton loaders that visually match the bento grid exactly, elegant out-of-stock states, “Notify Me” fallback flows, network error toast notifications, empty cart states, unavailable variant fallback messaging, retryable API failures, image loading placeholders, and graceful degradation when motion or WebGL is unavailable
+5. Security Considerations
+CSRF protection, input sanitization, auth-aware flows, rate-limited write endpoints, secure HTTP-only cookies, server-side validation for all mutations, strict content security practices, and safe handling of pricing/cart state
+📌 Part 5: Strict Engineering & Design Directives
+Lean & Efficient
+Minimize code; prefer composition over repetition.
+Use native HTML elements whenever possible, then enhance.
+Tree-shake unused library code and avoid dead weight.
+Non-Generic Layouts
+Reject cookie-cutter templates. Incorporate unique asymmetry, custom grids, and immersive scroll experiences.
+Leverage fluid typography and container queries for dynamic scaling.
+Micro-Interactions
+Employ subtle yet delightful animations: hover reveals, button press feedback, section-load transitions, and tactile micro-states.
+Keep animation durations and easings consistent; respect motion sensitivity preferences.
+Generous Spacing & Hierarchy
+Prioritize readability and brand feel with thoughtful use of white space.
+Implement a clear typographic hierarchy to guide user attention.
+Separation of Concerns
+Isolate UI components from business logic.
+Use custom hooks for data fetching and state.
+Keep markup semantic and avoid side effects in components.
+E-Commerce & Enterprise Logic
+Account for product variations, stock availability, pricing tiers, discount logic, etc.
+Provide fail-safe states for network errors and fallback content.
+Accessibility (a11y)
+Label every interactive element (aria-labels, roles).
+Ensure keyboard navigability and focus management.
+Implement color and contrast guidelines; offer motion reduction toggles.
+Performance & Responsiveness
+Implement responsive images and native lazy loading (e.g., Next/Image component).
+Define performance budgets (bundle size, LCP, CLS).
+Use code splitting at route and component level; lazy load non-critical modules.
+SEO & Structured Data
+Ensure semantic HTML markup for headings, lists, and links.
+Include appropriate meta tags and JSON-LD schema if relevant.
+Use server-side rendering or static generation to improve crawlability.
+Maintainability & Scalability
+Follow a clear project structure with domain-driven modules.
+Use a consistent naming convention for files, components, and variables.
+Document your code, particularly for complex logic and custom hooks.
+🗂️ Part 6: Deliverables & Output Specifications
+1. Optimal Folder/File Structure
+Sketch an opinionated, scalable project layout specific to this module/page (e.g., /components, /hooks, /utils, /app/route, /styles).
+2. Complete Codebase
+Provide fully copy-pasteable TypeScript code for all components, hooks, and supporting utilities.
+Include proper imports relative to the outlined file structure.
+Use strict typing and adhere to ESLint and Prettier conventions.
+3. Configuration Files (if needed)
+Show relevant parts of tailwind.config.ts, ESLint config, or tsconfig.json only if customization is essential for this module.
+4. Documentation Notes
+Comment on intricate logic, design rationale, and usage instructions for custom hooks/components.
