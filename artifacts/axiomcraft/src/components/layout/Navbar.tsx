@@ -1,11 +1,11 @@
-import { Link, useLocation } from "wouter";
+import { Link, useLocation } from "react-router-dom";
 import { ShoppingCart, Menu, X, Cpu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function Navbar() {
-  const [location] = useLocation();
+  const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { itemCount } = useCartManager();
@@ -27,15 +27,14 @@ export function Navbar() {
     <>
       <header
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 border-b ${
-          isScrolled 
-            ? "bg-background/80 backdrop-blur-md border-border" 
+          isScrolled
+            ? "bg-background/80 backdrop-blur-md border-border"
             : "bg-transparent border-transparent"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group" data-testid="link-home">
+            <Link to="/" className="flex items-center gap-2 group" data-testid="link-home">
               <div className="w-10 h-10 bg-primary/10 border border-primary/30 flex items-center justify-center rounded-sm group-hover:bg-primary/20 transition-colors">
                 <Cpu className="w-6 h-6 text-primary" />
               </div>
@@ -44,14 +43,13 @@ export function Navbar() {
               </span>
             </Link>
 
-            {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
-                  href={link.href}
+                  to={link.href}
                   className={`text-sm font-medium tracking-wide uppercase transition-colors hover:text-primary ${
-                    location === link.href ? "text-primary" : "text-muted-foreground"
+                    location.pathname === link.href ? "text-primary" : "text-muted-foreground"
                   }`}
                   data-testid={`link-nav-${link.label.toLowerCase()}`}
                 >
@@ -60,10 +58,9 @@ export function Navbar() {
               ))}
             </nav>
 
-            {/* Actions */}
             <div className="flex items-center gap-4">
               <Link
-                href="/cart"
+                to="/cart"
                 className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
                 data-testid="link-cart"
               >
@@ -87,7 +84,6 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -100,10 +96,10 @@ export function Navbar() {
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
-                  href={link.href}
+                  to={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`text-2xl font-heading font-bold uppercase ${
-                    location === link.href ? "text-primary" : "text-foreground"
+                    location.pathname === link.href ? "text-primary" : "text-foreground"
                   }`}
                 >
                   {link.label}

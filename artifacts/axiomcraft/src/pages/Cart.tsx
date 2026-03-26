@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link } from 'react-router-dom';
 import { Layout } from "@/components/layout/Layout";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { Trash2, ArrowRight, ShieldAlert, Cpu, Bell, BellRing } from "lucide-react";
@@ -64,7 +64,7 @@ export default function Cart() {
             <Cpu className="w-16 h-16 text-muted-foreground mb-6 opacity-50" />
             <h2 className="font-heading text-2xl font-bold uppercase mb-2">Loadout is empty</h2>
             <p className="text-muted-foreground font-mono text-sm mb-8">No hardware has been selected for integration.</p>
-            <Link href="/products">
+            <Link to="/products">
               <button className="px-8 py-4 bg-primary text-primary-foreground font-heading font-bold uppercase tracking-wider text-sm rounded-sm hover:bg-primary/90 transition-all box-glow">
                 Browse Catalog
               </button>
@@ -102,7 +102,7 @@ export default function Cart() {
                       </div>
                       <div className="flex flex-col gap-0.5">
                         <span className="text-xs font-mono text-primary uppercase">{item.product.category}</span>
-                        <Link href={`/products/${item.product.id}`} className="font-heading font-bold uppercase text-lg hover:text-primary transition-colors line-clamp-1">
+                        <Link to={`/products/${item.product.id}`} className="font-heading font-bold uppercase text-lg hover:text-primary transition-colors line-clamp-1">
                           {item.product.name}
                         </Link>
                         {item.variantName && (

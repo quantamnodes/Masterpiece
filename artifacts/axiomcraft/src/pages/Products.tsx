@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
@@ -71,8 +71,8 @@ function MultiSelectFilter({
 }
 
 export default function Products() {
-  const [location] = useLocation();
-  const searchParams = new URLSearchParams(window.location.search);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
   const initialCategory = searchParams.get("category") || undefined;
 
   const [category, setCategory] = useState<string | undefined>(initialCategory);
@@ -86,9 +86,9 @@ export default function Products() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search);
     setCategory(params.get("category") || undefined);
-  }, [location]);
+  }, [location.search]);
 
   const { data: categoriesData } = useListCategories();
 
@@ -375,15 +375,26 @@ export default function Products() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+              <div className="relative">
                 {isFetching && !isLoading && (
                   <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-sm">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[220px] gap-4">
+                  {filteredProducts.map((product, i) => {
+                    const isBig = i % 7 === 0;
+                    const isTall = i % 7 === 3;
+                    return (
+                      <div
+                        key={product.id}
+                        className={`${isBig ? "col-span-2 row-span-2" : isTall ? "row-span-2" : "col-span-1 row-span-1"}`}
+                      >
+                        <ProductCard product={product} fillContainer />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

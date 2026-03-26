@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useGetProduct, useGetRelatedProducts } from "@workspace/api-client-react";
 import { useCartManager } from "@/hooks/use-cart-manager";
@@ -53,7 +53,7 @@ export default function ProductDetail() {
           <Cpu className="w-16 h-16 text-muted-foreground mb-6" />
           <h1 className="text-3xl font-heading font-bold uppercase mb-2">Component Missing</h1>
           <p className="text-muted-foreground font-mono mb-8">The requested hardware could not be located in the database.</p>
-          <Link href="/products">
+          <Link to="/products">
             <button className="px-6 py-3 border border-primary text-primary font-mono text-sm uppercase hover:bg-primary hover:text-primary-foreground transition-colors">
               Return to Catalog
             </button>
@@ -94,7 +94,7 @@ export default function ProductDetail() {
     <Layout>
       <div className="bg-muted/30 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/products" className="inline-flex items-center gap-2 text-sm font-mono text-muted-foreground hover:text-primary transition-colors uppercase">
+          <Link to="/products" className="inline-flex items-center gap-2 text-sm font-mono text-muted-foreground hover:text-primary transition-colors uppercase">
             <ChevronLeft className="w-4 h-4" /> Back to Catalog
           </Link>
         </div>

@@ -1,22 +1,45 @@
-import { Link } from "wouter";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { Link } from 'react-router-dom';
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { Cpu, Zap, Shield, ArrowRight, ChevronRight } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
+import { useEffect, useRef, useState } from "react";
+
+function CountUpStat({ target, suffix, label }: { target: number; suffix: string; label: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    const duration = 1800;
+    const steps = 60;
+    const increment = target / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current = Math.min(current + increment, target);
+      setCount(Math.floor(current));
+      if (current >= target) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [isInView, target]);
+
+  return (
+    <div ref={ref} className="text-center px-4">
+      <div className="text-3xl md:text-4xl font-mono font-bold text-foreground mb-2">
+        {count.toLocaleString()}{suffix}
+      </div>
+      <div className="text-xs font-heading uppercase tracking-widest text-muted-foreground">{label}</div>
+    </div>
+  );
+}
 
 export default function Home() {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, 200]);
 
   const { data: featuredData, isLoading } = useListProducts({ sortBy: "newest" });
-
-  const stats = [
-    { value: "50,000+", label: "Units Deployed" },
-    { value: "99.9%", label: "Uptime Reliability" },
-    { value: "24/7", label: "Protocol Support" },
-    { value: "5-Year", label: "Hardware Warranty" },
-  ];
 
   return (
     <Layout>
@@ -51,12 +74,12 @@ export default function Home() {
               </p>
               
               <div className="flex flex-wrap gap-4">
-                <Link href="/products">
+                <Link to="/products">
                   <button className="px-8 py-4 bg-primary text-primary-foreground font-heading font-bold uppercase tracking-wider text-sm rounded-sm hover:bg-primary/90 transition-all box-glow flex items-center gap-2 group">
                     Initialize Setup <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </Link>
-                <Link href="/products?category=gpus">
+                <Link to="/products?category=gpus">
                   <button className="px-8 py-4 bg-background border border-border text-foreground font-heading font-bold uppercase tracking-wider text-sm rounded-sm hover:border-primary hover:text-primary transition-all">
                     Explore GPUs
                   </button>
@@ -71,19 +94,10 @@ export default function Home() {
       <section className="border-y border-border bg-card/50 backdrop-blur-md relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-border/50">
-            {stats.map((stat, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center px-4"
-              >
-                <div className="text-3xl md:text-4xl font-mono font-bold text-foreground mb-2">{stat.value}</div>
-                <div className="text-xs font-heading uppercase tracking-widest text-muted-foreground">{stat.label}</div>
-              </motion.div>
-            ))}
+            <CountUpStat target={50000} suffix="+" label="Units Deployed" />
+            <CountUpStat target={999} suffix="%" label="Uptime Reliability" />
+            <CountUpStat target={247} suffix="" label="Protocol Support" />
+            <CountUpStat target={5} suffix="-Year" label="Hardware Warranty" />
           </div>
         </div>
       </section>
@@ -96,14 +110,14 @@ export default function Home() {
               <h2 className="text-3xl md:text-5xl font-heading font-bold uppercase tracking-tight mb-4">Hardware Matrix</h2>
               <p className="text-muted-foreground font-mono">SELECT COMPONENT PROTOCOL</p>
             </div>
-            <Link href="/products" className="hidden md:flex items-center gap-2 text-primary font-mono text-sm hover:underline">
+            <Link to="/products" className="hidden md:flex items-center gap-2 text-primary font-mono text-sm hover:underline">
               VIEW ALL <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[300px]">
             {/* Main large cell */}
-            <Link href="/products?category=gpus" className="md:col-span-2 md:row-span-2 relative group overflow-hidden border border-border rounded-sm bg-card hover:border-primary/50 transition-colors">
+            <Link to="/products?category=gpus" className="md:col-span-2 md:row-span-2 relative group overflow-hidden border border-border rounded-sm bg-card hover:border-primary/50 transition-colors">
               <img 
                 src={`${import.meta.env.BASE_URL}images/category-gpu.png`}
                 alt="GPUs"
@@ -117,7 +131,7 @@ export default function Home() {
             </Link>
 
             {/* Smaller cells */}
-            <Link href="/products?category=cpus" className="relative group overflow-hidden border border-border rounded-sm bg-card hover:border-primary/50 transition-colors">
+            <Link to="/products?category=cpus" className="relative group overflow-hidden border border-border rounded-sm bg-card hover:border-primary/50 transition-colors">
               <img 
                 src={`${import.meta.env.BASE_URL}images/category-cpu.png`}
                 alt="CPUs"
@@ -130,7 +144,7 @@ export default function Home() {
               </div>
             </Link>
 
-            <Link href="/products?category=motherboards" className="relative group overflow-hidden border border-border rounded-sm bg-card hover:border-primary/50 transition-colors p-6 flex flex-col justify-end">
+            <Link to="/products?category=motherboards" className="relative group overflow-hidden border border-border rounded-sm bg-card hover:border-primary/50 transition-colors p-6 flex flex-col justify-end">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,240,255,0.1),transparent_70%)]" />
               <Shield className="w-8 h-8 text-muted-foreground mb-4 group-hover:text-primary transition-colors" />
               <h3 className="text-2xl font-heading font-bold uppercase mb-1 group-hover:text-primary transition-colors">Mainboards</h3>

@@ -1,16 +1,16 @@
-import { Link } from "wouter";
+import { Link } from 'react-router-dom';
 import { type Product } from "@workspace/api-client-react";
 import { ShoppingCart } from "lucide-react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, fillContainer = false }: { product: Product; fillContainer?: boolean }) {
   const { addToCart, isAdding } = useCartManager();
   const { toast } = useToast();
 
   const handleQuickAdd = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigating to detail page
+    e.preventDefault();
     if (product.stock <= 0) return;
     
     try {
@@ -36,23 +36,21 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <motion.div 
       whileHover={{ y: -4 }}
-      className="group flex flex-col bg-card border border-border rounded-sm overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,240,255,0.1)] relative"
+      className={`group flex flex-col bg-card border border-border rounded-sm overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,240,255,0.1)] relative ${fillContainer ? "h-full" : ""}`}
       data-testid={`card-product-${product.id}`}
     >
-      <Link href={`/products/${product.id}`} className="flex-1 flex flex-col relative outline-none">
+      <Link to={`/products/${product.id}`} className="flex-1 flex flex-col relative outline-none h-full">
         
         {/* Image Container */}
-        <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+        <div className={`relative bg-muted overflow-hidden ${fillContainer ? "flex-1" : "aspect-[4/3]"}`}>
           <img 
             src={imageUrl} 
             alt={product.name}
             className="w-full h-full object-cover mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-500 group-hover:scale-105"
             loading="lazy"
           />
-          {/* Subtle gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent opacity-80" />
           
-          {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             <span className="px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-background/80 backdrop-blur-sm border border-border text-muted-foreground rounded-sm">
               {product.category}
@@ -66,24 +64,24 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
 
         {/* Content */}
-        <div className="p-5 flex flex-col flex-1">
-          <h3 className="font-heading font-semibold text-lg line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+        <div className="p-4 flex flex-col shrink-0">
+          <h3 className="font-heading font-semibold text-base line-clamp-1 mb-1 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
           
-          <div className="mt-auto pt-4 flex items-end justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex flex-col">
               {product.salePrice ? (
                 <>
                   <span className="text-xs font-mono text-muted-foreground line-through">
                     ${product.basePrice.toLocaleString()}
                   </span>
-                  <span className="font-mono text-xl font-bold text-primary">
+                  <span className="font-mono text-lg font-bold text-primary">
                     ${product.salePrice.toLocaleString()}
                   </span>
                 </>
               ) : (
-                <span className="font-mono text-xl font-bold">
+                <span className="font-mono text-lg font-bold">
                   ${product.basePrice.toLocaleString()}
                 </span>
               )}

@@ -1,5 +1,5 @@
 import { Cpu, Github, Twitter, Disc } from "lucide-react";
-import { Link } from "wouter";
+import { Link } from 'react-router-dom';
 
 export function Footer() {
   return (
@@ -7,7 +7,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-6">
+            <Link to="/" className="flex items-center gap-2 mb-6">
               <div className="w-8 h-8 bg-primary/10 border border-primary/30 flex items-center justify-center rounded-sm">
                 <Cpu className="w-5 h-5 text-primary" />
               </div>
@@ -23,10 +23,10 @@ export function Footer() {
           <div>
             <h4 className="font-heading font-bold uppercase tracking-wider mb-4 text-foreground">Hardware</h4>
             <ul className="space-y-3">
-              <li><Link href="/products?category=gpus" className="text-muted-foreground hover:text-primary transition-colors text-sm">Graphics Cards</Link></li>
-              <li><Link href="/products?category=cpus" className="text-muted-foreground hover:text-primary transition-colors text-sm">Processors</Link></li>
-              <li><Link href="/products?category=motherboards" className="text-muted-foreground hover:text-primary transition-colors text-sm">Motherboards</Link></li>
-              <li><Link href="/products?category=memory" className="text-muted-foreground hover:text-primary transition-colors text-sm">Memory</Link></li>
+              <li><Link to="/products?category=gpus" className="text-muted-foreground hover:text-primary transition-colors text-sm">Graphics Cards</Link></li>
+              <li><Link to="/products?category=cpus" className="text-muted-foreground hover:text-primary transition-colors text-sm">Processors</Link></li>
+              <li><Link to="/products?category=motherboards" className="text-muted-foreground hover:text-primary transition-colors text-sm">Motherboards</Link></li>
+              <li><Link to="/products?category=memory" className="text-muted-foreground hover:text-primary transition-colors text-sm">Memory</Link></li>
             </ul>
           </div>
 
