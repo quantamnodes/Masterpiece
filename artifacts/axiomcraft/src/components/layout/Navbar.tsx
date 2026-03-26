@@ -147,6 +147,7 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { itemCount } = useCartManager();
+  const { user } = useUserStore();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -271,6 +272,15 @@ export function Navbar() {
               >
                 Contact
               </Link>
+
+              {user?.role === "admin" && (
+                <Link
+                  to="/dashboard"
+                  className={`flex items-center gap-1.5 text-xs font-mono tracking-widest uppercase px-3 py-1.5 border rounded-sm transition-all ${location.pathname === "/dashboard" ? "border-primary bg-primary/20 text-primary" : "border-primary/50 text-primary hover:bg-primary/10"}`}
+                >
+                  <Layers className="w-3.5 h-3.5" /> Dashboard
+                </Link>
+              )}
             </nav>
 
             {/* Right actions */}
@@ -385,6 +395,11 @@ export function Navbar() {
               <Link to="/wishlist" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
                 <Heart className="w-6 h-6" /> Wishlist
               </Link>
+              {user?.role === "admin" && (
+                <Link to="/dashboard" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-primary/40 text-primary hover:opacity-80 transition-opacity">
+                  <Layers className="w-6 h-6" /> Dashboard
+                </Link>
+              )}
             </div>
           </motion.div>
         )}

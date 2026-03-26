@@ -1,17 +1,182 @@
 import { Link } from "react-router-dom";
 import {
   motion,
+  AnimatePresence,
   useScroll,
   useTransform,
   useInView,
   useMotionValue,
   useSpring,
 } from "framer-motion";
-import { Cpu, Zap, Shield, ArrowRight, ChevronRight } from "lucide-react";
+import { Cpu, Zap, Shield, ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
 import { useEffect, useRef, useState } from "react";
+
+const ALL_TESTIMONIALS = [
+  { name: "DR_APEX", tier: "Platinum", rating: 5, text: "The X870E Apex is a beast. Running AM5 at 6.4GHz all-core with thermals that don't flinch. Zero instability in 4 months of 24/7 operation." },
+  { name: "VECTORFIELD_77", tier: "Gold", rating: 5, text: "Switched from another vendor — the difference is night and day. Support team had my RMA processed in 6 hours. Unmatched service." },
+  { name: "NULL_POINTER", tier: "Silver", rating: 5, text: "RTX 5090 FE edition ran out of stock everywhere else. AxiomCraft had it in hand and shipped same day. My render times halved immediately." },
+  { name: "SIGMA_BUILD", tier: "Platinum", rating: 5, text: "The PC Builder tool actually saved me from a compatibility nightmare. Auto-flagged my PSU wattage gap before I ordered. Incredible attention to detail." },
+  { name: "TESSERA_LAB", tier: "Gold", rating: 5, text: "We equip our entire studio through AxiomCraft. Bulk pricing, priority support, and every shipment arrives perfectly packaged. Non-negotiable vendor." },
+  { name: "CIPHER_X9", tier: "Bronze", rating: 4, text: "First build with these guys. Walked me through the entire AM5 selection via live chat. Ended up with a sub-$800 rig that punches well above weight." },
+  { name: "GHOST_RENDER", tier: "Platinum", rating: 5, text: "Three machines, all running flawlessly 18 months in. The DDR5 kits they recommended hit 7200MHz stable out of the box. Respect the expertise." },
+  { name: "NEON_LATTICE", tier: "Silver", rating: 5, text: "Their PSU selector flagged that my 4090 Ti OC would brown out at load peaks. Saved me a catastrophic failure. Can't put a price on that." },
+  { name: "QUARTZ_SIGMA", tier: "Gold", rating: 4, text: "Ordered Thursday, delivered Friday, built Saturday. Fastest procurement-to-render pipeline I've experienced in 12 years of workstation builds." },
+  { name: "FLUX_OPERATOR", tier: "Platinum", rating: 5, text: "The Platinum tier perks alone are worth the spend. Private concierge for bulk orders and priority stock allocation. Absolutely elite service." },
+  { name: "BYTE_WARDEN", tier: "Bronze", rating: 5, text: "As a newcomer to custom builds, the staff walked me through everything. Never felt rushed or upsold. Genuinely rare in this space." },
+  { name: "MATRIX_CORP", tier: "Gold", rating: 5, text: "Equipped 40 workstations in a month with zero defects. Account manager tracked every order personally. AxiomCraft is our permanent vendor." },
+];
+
+function TierColor(tier: string) {
+  if (tier === "Platinum") return "border-primary/40 bg-primary/10 text-primary";
+  if (tier === "Gold") return "border-yellow-400/40 bg-yellow-400/10 text-yellow-400";
+  if (tier === "Silver") return "border-slate-400/40 bg-slate-400/10 text-slate-400";
+  return "border-amber-600/40 bg-amber-600/10 text-amber-600";
+}
+
+function TestimonialCard({ t, delay = 0 }: { t: typeof ALL_TESTIMONIALS[0]; delay?: number }) {
+  return (
+    <div className="border border-border bg-card/50 rounded-sm p-5 sm:p-6 relative overflow-hidden group hover:border-primary/30 transition-colors h-full flex flex-col">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="flex items-center gap-1 mb-3 sm:mb-4">
+        {Array(t.rating).fill(0).map((_, si) => (
+          <Zap key={si} className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary fill-primary" />
+        ))}
+      </div>
+      <p className="font-sans text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4 sm:mb-6 flex-1">"{t.text}"</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="font-mono text-xs sm:text-sm font-bold">{t.name}</p>
+          <p className="font-mono text-[10px] sm:text-xs text-muted-foreground uppercase">{t.tier} Operator</p>
+        </div>
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-sm border flex items-center justify-center ${TierColor(t.tier)}`}>
+          <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TestimonialsCarousel() {
+  const DESKTOP_PER_PAGE = 6;
+  const TOTAL_DESKTOP_PAGES = Math.ceil(ALL_TESTIMONIALS.length / DESKTOP_PER_PAGE);
+  const [desktopPage, setDesktopPage] = useState(0);
+  const [mobileIdx, setMobileIdx] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setDirection(1);
+      setDesktopPage((p) => (p + 1) % TOTAL_DESKTOP_PAGES);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [TOTAL_DESKTOP_PAGES]);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setMobileIdx((p) => (p + 1) % ALL_TESTIMONIALS.length);
+    }, 4000);
+    return () => clearInterval(t);
+  }, []);
+
+  const desktopSlice = ALL_TESTIMONIALS.slice(
+    desktopPage * DESKTOP_PER_PAGE,
+    (desktopPage + 1) * DESKTOP_PER_PAGE,
+  );
+
+  const slideVariants = {
+    enter: (d: number) => ({ x: d > 0 ? 50 : -50, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (d: number) => ({ x: d > 0 ? -50 : 50, opacity: 0 }),
+  };
+
+  const mobileVariants = {
+    enter: { x: 60, opacity: 0 },
+    center: { x: 0, opacity: 1 },
+    exit: { x: -60, opacity: 0 },
+  };
+
+  const goDesktop = (dir: number) => {
+    setDirection(dir);
+    setDesktopPage((p) => (p + dir + TOTAL_DESKTOP_PAGES) % TOTAL_DESKTOP_PAGES);
+  };
+
+  const goMobile = (dir: number) => {
+    setMobileIdx((p) => (p + dir + ALL_TESTIMONIALS.length) % ALL_TESTIMONIALS.length);
+  };
+
+  return (
+    <div>
+      {/* Desktop: 3×2 grid carousel */}
+      <div className="hidden md:block relative">
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={desktopPage}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            className="grid grid-cols-3 gap-6"
+          >
+            {desktopSlice.map((t) => (
+              <TestimonialCard key={t.name} t={t} />
+            ))}
+          </motion.div>
+        </AnimatePresence>
+        {/* Desktop controls */}
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <button onClick={() => goDesktop(-1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronLeft className="w-5 h-5" /></button>
+          <div className="flex gap-2">
+            {Array(TOTAL_DESKTOP_PAGES).fill(0).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => { setDirection(i > desktopPage ? 1 : -1); setDesktopPage(i); }}
+                className={`h-1 rounded-full transition-all duration-300 ${i === desktopPage ? "w-8 bg-primary" : "w-4 bg-border hover:bg-primary/40"}`}
+              />
+            ))}
+          </div>
+          <button onClick={() => goDesktop(1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronRight className="w-5 h-5" /></button>
+        </div>
+      </div>
+
+      {/* Mobile: 1×1 carousel */}
+      <div className="md:hidden">
+        <div className="relative overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mobileIdx}
+              variants={mobileVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <TestimonialCard t={ALL_TESTIMONIALS[mobileIdx]} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        {/* Mobile controls */}
+        <div className="flex items-center justify-center gap-3 mt-5">
+          <button onClick={() => goMobile(-1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+          <div className="flex gap-1.5">
+            {ALL_TESTIMONIALS.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setMobileIdx(i)}
+                className={`h-1 rounded-full transition-all duration-300 ${i === mobileIdx ? "w-5 bg-primary" : "w-2 bg-border"}`}
+              />
+            ))}
+          </div>
+          <button onClick={() => goMobile(1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronRight className="w-4 h-4" /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function CountUpStat({ target, suffix, label, delay = 0 }: { target: number; suffix: string; label: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -158,9 +323,9 @@ export default function Home() {
             </motion.div>
 
             {/* Animated headline word-by-word */}
-            <h1 className="text-5xl sm:text-7xl md:text-[7rem] font-heading font-bold uppercase leading-[0.88] tracking-tighter mb-8">
+            <h1 className="text-[2.8rem] sm:text-7xl md:text-[7rem] font-heading font-bold uppercase leading-[0.88] tracking-tighter mb-6 sm:mb-8">
               {heroWords.map((word, wi) => (
-                <span key={wi} className="inline-block overflow-hidden mr-4">
+                <span key={wi} className="inline-block overflow-hidden mr-2 sm:mr-4">
                   <motion.span
                     className={`inline-block ${wi === 2 ? "text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-300 to-blue-500" : ""}`}
                     initial={{ y: "110%", opacity: 0 }}
@@ -182,7 +347,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.75 }}
-              className="text-xl md:text-2xl text-muted-foreground font-sans max-w-2xl mb-12 border-l-2 border-primary pl-6"
+              className="text-base sm:text-xl md:text-2xl text-muted-foreground font-sans max-w-2xl mb-8 sm:mb-12 border-l-2 border-primary pl-4 sm:pl-6"
             >
               Engineered for those who refuse compromise. Absolute power. Zero bottlenecks. Render at the speed of thought.
             </motion.p>
@@ -242,7 +407,7 @@ export default function Home() {
           transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-border/50">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8 md:gap-8 md:divide-x md:divide-border/50">
             <CountUpStat target={50000} suffix="+" label="Units Deployed" delay={0} />
             <CountUpStat target={999} suffix="%" label="Uptime Reliability" delay={100} />
             <CountUpStat target={247} suffix="" label="Protocol Support" delay={200} />
@@ -252,7 +417,7 @@ export default function Home() {
       </section>
 
       {/* ─── BENTO GRID ──────────────────────────────────────────────── */}
-      <section ref={bentoRef} className="py-24 relative z-20">
+      <section ref={bentoRef} className="py-14 sm:py-24 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-12">
             <motion.div
@@ -276,7 +441,7 @@ export default function Home() {
             </motion.div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[300px]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[220px] md:auto-rows-[300px]">
             {[
               { to: "/products?category=gpus", span: "md:col-span-2 md:row-span-2", img: `${import.meta.env.BASE_URL}images/category-gpu.png`, title: "Graphics Processors", sub: "Visual simulation rendering engines.", big: true },
               { to: "/products?category=cpus", span: "", img: `${import.meta.env.BASE_URL}images/category-cpu.png`, title: "Logic Cores", sub: "Central processing units.", big: false },
@@ -340,15 +505,15 @@ export default function Home() {
           className="flex gap-12 whitespace-nowrap"
         >
           {Array(4).fill(["ZERO BOTTLENECKS", "ABSOLUTE POWER", "ENGINEERED PRECISION", "MAXIMUM THROUGHPUT", "RENDER AT LIGHT SPEED"]).flat().map((t, i) => (
-            <span key={i} className="font-heading font-bold text-2xl uppercase tracking-widest text-muted-foreground/20 hover:text-primary/40 transition-colors">
-              {t} <span className="text-primary/20 mx-6">◆</span>
+            <span key={i} className="font-heading font-bold text-base sm:text-2xl uppercase tracking-widest text-muted-foreground/20 hover:text-primary/40 transition-colors">
+              {t} <span className="text-primary/20 mx-4 sm:mx-6">◆</span>
             </span>
           ))}
         </motion.div>
       </section>
 
       {/* ─── NEW ACQUISITIONS 3×3 GRID ───────────────────────────────── */}
-      <section ref={featuredRef} className="py-24 bg-card/20 border-y border-border relative z-20">
+      <section ref={featuredRef} className="py-14 sm:py-24 bg-card/20 border-y border-border relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -394,7 +559,7 @@ export default function Home() {
       </section>
 
       {/* ─── TESTIMONIALS ─────────────────────────────────────────────── */}
-      <section className="py-24 relative z-20 overflow-hidden">
+      <section className="py-16 sm:py-24 relative z-20 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(0,240,255,0.04),transparent_70%)] pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -402,65 +567,17 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16"
           >
-            <h2 className="text-3xl md:text-5xl font-heading font-bold uppercase tracking-tight mb-4">Field Reports</h2>
-            <p className="text-muted-foreground font-mono">From operators running our hardware</p>
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-heading font-bold uppercase tracking-tight mb-3">Field Reports</h2>
+            <p className="text-muted-foreground font-mono text-sm">From operators running our hardware</p>
           </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: "DR_APEX", tier: "Platinum", rating: 5, text: "The X870E Apex is a beast. Running AM5 at 6.4GHz all-core with thermals that don't flinch. Zero instability in 4 months of 24/7 operation." },
-              { name: "VECTORFIELD_77", tier: "Gold", rating: 5, text: "Switched from another vendor — the difference is night and day. Support team had my RMA processed in 6 hours. Unmatched service." },
-              { name: "NULL_POINTER", tier: "Silver", rating: 5, text: "RTX 5090 FE edition ran out of stock everywhere else. AxiomCraft had it in hand and shipped same day. My render times halved immediately." },
-              { name: "SIGMA_BUILD", tier: "Platinum", rating: 5, text: "The PC Builder tool actually saved me from a compatibility nightmare. Auto-flagged my PSU wattage gap before I ordered. Incredible attention to detail." },
-              { name: "TESSERA_LAB", tier: "Gold", rating: 5, text: "We equip our entire studio through AxiomCraft. Bulk pricing, priority support, and every shipment arrives perfectly packaged. Non-negotiable vendor." },
-              { name: "CIPHER_X9", tier: "Bronze", rating: 4, text: "First build with these guys. Walked me through the entire AM5 selection via live chat. Ended up with a sub-$800 rig that punches well above weight." },
-            ].map((t, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                whileHover={{ y: -4 }}
-                className="border border-border bg-card/50 rounded-sm p-6 relative overflow-hidden group hover:border-primary/30 transition-colors"
-              >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100"
-                  transition={{ duration: 0.3 }}
-                />
-                <div className="flex items-center gap-1 mb-4">
-                  {Array(t.rating).fill(0).map((_, si) => (
-                    <motion.div
-                      key={si}
-                      initial={{ scale: 0 }}
-                      whileInView={{ scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.3 + i * 0.05 + si * 0.05 }}
-                    >
-                      <Zap className="w-3.5 h-3.5 text-primary fill-primary" />
-                    </motion.div>
-                  ))}
-                </div>
-                <p className="font-sans text-sm text-muted-foreground leading-relaxed mb-6">"{t.text}"</p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-mono text-sm font-bold">{t.name}</p>
-                    <p className="font-mono text-xs text-muted-foreground uppercase">{t.tier} Operator</p>
-                  </div>
-                  <div className={`w-8 h-8 rounded-sm border flex items-center justify-center ${t.tier === "Platinum" ? "border-primary/40 bg-primary/10 text-primary" : t.tier === "Gold" ? "border-yellow-400/40 bg-yellow-400/10 text-yellow-400" : t.tier === "Silver" ? "border-slate-400/40 bg-slate-400/10 text-slate-400" : "border-amber-600/40 bg-amber-600/10 text-amber-600"}`}>
-                    <Shield className="w-4 h-4" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <TestimonialsCarousel />
         </div>
       </section>
 
       {/* ─── VALUE PROPS ─────────────────────────────────────────────── */}
-      <section className="py-24 relative z-20">
+      <section className="py-16 sm:py-24 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
