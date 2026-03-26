@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search, Crown, Tag, Wrench, ArrowRight, Star, Zap, LogOut } from "lucide-react";
+import { ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search, Crown, Tag, Wrench, ArrowRight, Star, Zap, LogOut, Heart, Layers } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { motion, AnimatePresence } from "framer-motion";
@@ -115,6 +115,14 @@ function UserMenu() {
             <Link to="/account" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm hover:bg-muted/30 transition-colors">
               <User className="w-4 h-4 text-muted-foreground" /> My Profile
             </Link>
+            <Link to="/wishlist" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm hover:bg-muted/30 transition-colors">
+              <Heart className="w-4 h-4 text-muted-foreground" /> Wishlist
+            </Link>
+            {user.role === "admin" && (
+              <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-primary hover:bg-primary/10 transition-colors border-t border-border">
+                <Layers className="w-4 h-4" /> Admin Dashboard
+              </Link>
+            )}
             {user.tier === "platinum" && (
               <Link to="/platinum" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-primary hover:bg-primary/10 transition-colors border-t border-border">
                 <Crown className="w-4 h-4" /> Platinum Vault
@@ -373,6 +381,9 @@ export function Navbar() {
               <Link to="/contact" className="block py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">Contact</Link>
               <Link to="/account" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
                 <User className="w-6 h-6" /> Account
+              </Link>
+              <Link to="/wishlist" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
+                <Heart className="w-6 h-6" /> Wishlist
               </Link>
             </div>
           </motion.div>

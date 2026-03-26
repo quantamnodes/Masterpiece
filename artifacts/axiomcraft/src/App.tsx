@@ -16,6 +16,8 @@ import Deals from "@/pages/Deals";
 import PCBuilder from "@/pages/PCBuilder";
 import Compare from "@/pages/Compare";
 import Platinum from "@/pages/Platinum";
+import Wishlist from "@/pages/Wishlist";
+import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -50,6 +52,8 @@ function AppRoutes() {
       <Route path="/build" element={<PCBuilder />} />
       <Route path="/compare" element={<Compare />} />
       <Route path="/platinum" element={<Platinum />} />
+      <Route path="/wishlist" element={<Wishlist />} />
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

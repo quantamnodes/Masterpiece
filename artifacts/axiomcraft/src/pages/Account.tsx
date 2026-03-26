@@ -172,7 +172,7 @@ function ProfileView() {
 
 function AuthForm() {
   const [tab, setTab] = useState<"login" | "signup">("login");
-  const [form, setForm] = useState({ username: "", email: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "", confirm: "", employeeCode: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { setUser } = useUserStore();
@@ -191,7 +191,7 @@ function AuthForm() {
       const path = tab === "login" ? "/auth/login" : "/auth/register";
       const body = tab === "login"
         ? { email: form.email, password: form.password }
-        : { username: form.username, email: form.email, password: form.password };
+        : { username: form.username, email: form.email, password: form.password, employeeCode: form.employeeCode || undefined };
       const user = await apiFetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -290,6 +290,25 @@ function AuthForm() {
                   className="w-full bg-card border border-border rounded-sm pl-10 pr-4 py-3 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
+            </div>
+          )}
+
+          {tab === "signup" && (
+            <div>
+              <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                Employee Access Code <span className="normal-case tracking-normal text-muted-foreground/50">optional</span>
+              </label>
+              <div className="relative">
+                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={form.employeeCode}
+                  onChange={(e) => update("employeeCode", e.target.value)}
+                  placeholder="AXIOM-XXXX-XXXX"
+                  className="w-full bg-card border border-border rounded-sm pl-10 pr-4 py-3 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+              <p className="font-mono text-xs text-muted-foreground/50 mt-1.5">For AxiomCraft staff only. Grants admin access.</p>
             </div>
           )}
 

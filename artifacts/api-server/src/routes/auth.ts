@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
+const EMPLOYEE_CODE = process.env.EMPLOYEE_CODE || "AXIOM-EMPLOYEE-2024";
+
 const router = Router();
 
 function computeTier(totalSpent: number): string {
@@ -18,10 +20,22 @@ declare module "express-session" {
   }
 }
 
+function formatUser(user: typeof usersTable.$inferSelect) {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    tier: user.tier,
+    totalSpent: parseFloat(user.totalSpent),
+    purchaseCount: user.purchaseCount,
+  };
+}
+
 // POST /auth/register
 router.post("/auth/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, employeeCode } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({ error: "username, email and password are required" });
     }
@@ -34,19 +48,13 @@ router.post("/auth/register", async (req, res) => {
       return res.status(409).json({ error: "Email already registered" });
     }
     const passwordHash = await bcrypt.hash(password, 10);
+    const role = employeeCode === EMPLOYEE_CODE ? "admin" : "user";
     const [user] = await db
       .insert(usersTable)
-      .values({ username, email, passwordHash, tier: "bronze", totalSpent: "0", purchaseCount: 0 })
+      .values({ username, email, passwordHash, role, tier: "bronze", totalSpent: "0", purchaseCount: 0 })
       .returning();
     req.session.userId = user.id;
-    return res.status(201).json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      tier: user.tier,
-      totalSpent: parseFloat(user.totalSpent),
-      purchaseCount: user.purchaseCount,
-    });
+    return res.status(201).json(formatUser(user));
   } catch (e) {
     return res.status(500).json({ error: "Registration failed" });
   }
@@ -72,14 +80,7 @@ router.post("/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
     req.session.userId = user.id;
-    return res.json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      tier: user.tier,
-      totalSpent: parseFloat(user.totalSpent),
-      purchaseCount: user.purchaseCount,
-    });
+    return res.json(formatUser(user));
   } catch {
     return res.status(500).json({ error: "Login failed" });
   }
@@ -107,14 +108,7 @@ router.get("/auth/me", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
     const tier = computeTier(parseFloat(user.totalSpent));
-    return res.json({
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      tier,
-      totalSpent: parseFloat(user.totalSpent),
-      purchaseCount: user.purchaseCount,
-    });
+    return res.json({ ...formatUser(user), tier });
   } catch {
     return res.status(500).json({ error: "Failed to fetch user" });
   }

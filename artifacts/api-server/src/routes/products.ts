@@ -209,6 +209,66 @@ router.get("/products/:id/related", async (req, res) => {
   }
 });
 
+const COMPATIBLE_CATEGORIES: Record<string, string[]> = {
+  gpus: ["psus", "cpus"],
+  cpus: ["motherboards", "memory"],
+  motherboards: ["cpus", "memory", "storage"],
+  memory: ["motherboards", "cpus"],
+  storage: ["motherboards", "psus"],
+  psus: ["gpus", "cpus"],
+};
+
+// GET /products/:id/similar — same category, sorted by price (expensive first)
+router.get("/products/:id/similar", async (req, res) => {
+  try {
+    const id = parseInt(req.params["id"] ?? "0");
+    if (isNaN(id)) return res.status(400).json({ error: "bad_request" });
+    const [source] = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
+    if (!source) return res.json({ products: [] });
+
+    const similar = await db
+      .select()
+      .from(productsTable)
+      .where(and(eq(productsTable.categorySlug, source.categorySlug), sql`${productsTable.id} != ${id}`))
+      .limit(12);
+
+    // Sort by price desc (premium options first)
+    similar.sort((a, b) => parseFloat(b.basePrice) - parseFloat(a.basePrice));
+
+    return res.json({ products: similar.slice(0, 4).map(formatProduct) });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to get similar products" });
+  }
+});
+
+// GET /products/:id/compatible — cross-category compatible hardware
+router.get("/products/:id/compatible", async (req, res) => {
+  try {
+    const id = parseInt(req.params["id"] ?? "0");
+    if (isNaN(id)) return res.status(400).json({ error: "bad_request" });
+    const [source] = await db.select().from(productsTable).where(eq(productsTable.id, id)).limit(1);
+    if (!source) return res.json({ products: [] });
+
+    const compatCats = COMPATIBLE_CATEGORIES[source.categorySlug] || [];
+    if (compatCats.length === 0) return res.json({ products: [] });
+
+    // Fetch 2 from each compatible category
+    const results: (typeof productsTable.$inferSelect)[] = [];
+    for (const cat of compatCats.slice(0, 2)) {
+      const catProducts = await db
+        .select()
+        .from(productsTable)
+        .where(and(eq(productsTable.categorySlug, cat), sql`${productsTable.id} != ${id}`))
+        .limit(2);
+      results.push(...catProducts);
+    }
+
+    return res.json({ products: results.slice(0, 4).map(formatProduct) });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to get compatible products" });
+  }
+});
+
 router.get("/categories", async (req, res) => {
   try {
     const categories: CategoryRow[] = await db.select().from(categoriesTable);

@@ -7,6 +7,7 @@ export interface UserProfile {
   id: number;
   username: string;
   email: string;
+  role: "user" | "admin";
   tier: Tier;
   totalSpent: number;
   purchaseCount: number;

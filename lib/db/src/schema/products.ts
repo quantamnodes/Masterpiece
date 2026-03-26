@@ -71,9 +71,17 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("user"), // user | admin
   tier: text("tier").notNull().default("bronze"), // bronze | silver | gold | platinum
   totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).notNull().default("0"),
   purchaseCount: integer("purchase_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const wishlistsTable = pgTable("wishlists", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  productId: integer("product_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

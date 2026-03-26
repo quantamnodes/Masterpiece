@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
-import { useGetProduct, useGetRelatedProducts } from "@workspace/api-client-react";
+import { useGetProduct } from "@workspace/api-client-react";
+import { type Product } from "@workspace/api-client-react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { ProductCard } from "@/components/ProductCard";
+import { WishlistButton } from "@/components/WishlistButton";
 import { ShoppingCart, ChevronLeft, ShieldCheck, Truck, Cpu, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -14,6 +16,8 @@ import {
   AnimatePresence,
   type Variants,
 } from "framer-motion";
+
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.BASE_URL}api`;
 
 function ScanOverlay() {
   return (
@@ -119,7 +123,8 @@ export default function ProductDetail() {
   const productId = parseInt(id || "0", 10);
 
   const { data: product, isLoading, error } = useGetProduct(productId);
-  const { data: relatedData } = useGetRelatedProducts(productId);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [compatibleProducts, setCompatibleProducts] = useState<Product[]>([]);
 
   const { addToCart, isAdding } = useCartManager();
   const { toast } = useToast();
@@ -138,6 +143,20 @@ export default function ProductDetail() {
       setSelectedVariantId(product.variants[0].id);
     }
   }, [product, selectedVariantId]);
+
+  // Fetch similar + compatible products
+  useEffect(() => {
+    if (!productId || isNaN(productId)) return;
+    setSimilarProducts([]);
+    setCompatibleProducts([]);
+    Promise.all([
+      fetch(`${API}/products/${productId}/similar`).then((r) => r.json()).catch(() => ({ products: [] })),
+      fetch(`${API}/products/${productId}/compatible`).then((r) => r.json()).catch(() => ({ products: [] })),
+    ]).then(([simData, compData]) => {
+      setSimilarProducts(simData.products || []);
+      setCompatibleProducts(compData.products || []);
+    });
+  }, [productId]);
 
   // Reset on product change
   useEffect(() => {
@@ -448,6 +467,7 @@ export default function ProductDetail() {
                   <ShoppingCart className="w-5 h-5" />
                   {isOutOfStock ? "Depleted" : isAdding ? "Processing..." : "Acquire Component"}
                 </motion.button>
+                <WishlistButton productId={product.id} size="md" className="shrink-0" />
               </div>
 
               {!isOutOfStock && product.stock <= 5 && (
@@ -508,8 +528,8 @@ export default function ProductDetail() {
           </motion.div>
         </div>
 
-        {/* Cross Sell */}
-        {relatedData && relatedData.products.length > 0 && (
+        {/* Similar Products */}
+        {similarProducts.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -517,9 +537,41 @@ export default function ProductDetail() {
             transition={{ duration: 0.6 }}
             className="border-t border-border pt-16"
           >
-            <h2 className="text-3xl font-heading font-bold uppercase tracking-tight mb-8">Compatible Architecture</h2>
+            <div className="flex items-baseline gap-3 mb-8">
+              <h2 className="text-3xl font-heading font-bold uppercase tracking-tight">Similar Units</h2>
+              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Same category</span>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedData.products.slice(0, 4).map((rp, i) => (
+              {similarProducts.map((rp, i) => (
+                <motion.div
+                  key={rp.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                >
+                  <ProductCard product={rp} />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Compatible Hardware */}
+        {compatibleProducts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="border-t border-border pt-16"
+          >
+            <div className="flex items-baseline gap-3 mb-8">
+              <h2 className="text-3xl font-heading font-bold uppercase tracking-tight">Compatible Architecture</h2>
+              <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Works with this unit</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {compatibleProducts.map((rp, i) => (
                 <motion.div
                   key={rp.id}
                   initial={{ opacity: 0, y: 24 }}

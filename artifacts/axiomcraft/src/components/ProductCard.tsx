@@ -4,6 +4,7 @@ import { ShoppingCart } from "lucide-react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { WishlistButton } from "@/components/WishlistButton";
 
 export function ProductCard({ product, fillContainer = false }: { product: Product; fillContainer?: boolean }) {
   const { addToCart, isAdding } = useCartManager();
@@ -60,6 +61,9 @@ export function ProductCard({ product, fillContainer = false }: { product: Produ
                 {product.badge}
               </span>
             )}
+          </div>
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <WishlistButton productId={product.id} />
           </div>
         </div>
 
