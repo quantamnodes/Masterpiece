@@ -2,15 +2,29 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type Tier = "bronze" | "silver" | "gold" | "platinum";
+export type UserRole = "user" | "owner" | "manager" | "admin";
 
 export interface UserProfile {
   id: number;
   username: string;
   email: string;
-  role: "user" | "admin";
+  role: UserRole;
+  branchId: number | null;
   tier: Tier;
   totalSpent: number;
   purchaseCount: number;
+}
+
+export function isOwner(user: UserProfile | null): boolean {
+  return user?.role === "owner" || user?.role === "admin";
+}
+
+export function isManager(user: UserProfile | null): boolean {
+  return user?.role === "manager";
+}
+
+export function isStaff(user: UserProfile | null): boolean {
+  return isOwner(user) || isManager(user);
 }
 
 interface UserStore {

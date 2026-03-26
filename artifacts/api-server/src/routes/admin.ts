@@ -7,7 +7,7 @@ const router = Router();
 async function requireAdmin(req: any, res: any, next: any) {
   if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
-  if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
+  if (!user || (user.role !== "admin" && user.role !== "owner")) return res.status(403).json({ error: "Owner access required" });
   next();
 }
 

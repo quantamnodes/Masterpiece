@@ -1,0 +1,182 @@
+Owner
+Manager
+Buyer / Customer
+
+The platform should support multiple shop branches, where each branch can manage its own product availability, pricing adjustments, and discounts, while the Owner keeps full control over the entire system.
+
+Access Code System
+
+Instead of using something like:
+
+AXIOM-OWNER-202215
+
+use a more flexible and secure system where the Owner can create and change access codes anytime.
+
+Access Code Types
+Owner Access Code
+Only for the main owner
+Can be changed only by the Owner
+Manager Access Codes
+Created by the Owner
+Each code can be assigned to a specific shop or branch
+Employee Access Codes
+Created by the Owner or optionally by authorized Managers
+Limited permissions depending on role
+Example Format
+AXM-OWN-X9K2-2045
+AXM-MGR-DHK1-7782
+AXM-EMP-SH2-5519
+
+Each code should include:
+
+role type
+branch/shop identifier
+unique random code
+optional expiry or activation status
+Roles and Permissions
+1. Owner
+
+The Owner has full system control.
+
+Owner Permissions
+Create, edit, disable, or delete access codes
+Add new shop branches
+Assign managers to specific shops
+View and manage all branches from one dashboard
+Add new products
+Edit product details
+Remove products
+Change product prices
+Add discounts
+Upload product images
+Add product descriptions
+Add product names, categories, stock info, and all required product details
+Publish products to the website
+Control whether managers can edit global product info or only shop-specific data
+Owner Dashboard
+
+The Owner dashboard should allow:
+
+branch management
+product management
+employee code generation
+manager assignment
+discount control
+inventory overview across all shops
+analytics for each shop
+approval settings for manager changes
+2. Manager
+
+A Manager belongs to a specific shop branch.
+
+Manager Permissions
+
+Managers can update shop-specific product information, such as:
+
+whether a product is available in their shop
+branch-level stock quantity
+branch-specific discount
+branch-specific status
+whether a product is out of stock
+whether a product is featured in that branch
+
+Managers should not have full Owner permissions unless allowed by the Owner.
+
+Example
+
+A manager of Shop A can mark a product as:
+
+available in Shop A
+10% discount in Shop A
+out of stock in Shop A
+
+But that manager cannot edit the availability or price of Shop B, unless explicitly authorized.
+
+3. Buyer / Customer
+
+A buyer can visit the website and:
+
+browse products
+view product images and descriptions
+see current price and discounts
+check which shop branches have the product available
+select a branch to see branch-specific stock or offers
+know if a product is unavailable in a certain shop
+Buyer Experience
+
+For each product, the buyer should be able to see:
+
+product name
+image
+description
+original price
+discounted price
+availability by branch/shop
+“Available in this shop” or “Out of stock in this shop”
+Multi-Shop / Branch System
+
+The platform should support multiple physical or online shop branches.
+
+Branch Features
+Owner can create new branches anytime
+Each branch has:
+shop name
+location
+manager assignment
+contact details
+active/inactive status
+Each branch can have its own:
+stock count
+availability
+discounts
+manager updates
+Example
+
+A product may be:
+
+Available in Dhaka Branch
+Out of stock in Chittagong Branch
+On discount in Sylhet Branch
+
+This allows buyers to check product status shop by shop.
+
+Product Management System
+
+Each product should support full data fields, including:
+
+Product name
+Product image
+Description
+Category
+SKU / Product code
+Base price
+Discount price
+Stock quantity
+Brand
+Size / variants
+Color options
+Publish status
+Shop-wise availability
+Shop-wise discount
+Shop-wise stock
+Recommended Permission Structure
+Global Product Data
+
+Editable by Owner:
+
+name
+master description
+global image
+category
+base price
+product status
+publish settings
+Shop-Specific Product Data
+
+Editable by Manager:
+
+availability in that branch
+stock for that branch
+branch discount
+branch notes
+local promotion status

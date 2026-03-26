@@ -1,9 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search, Crown, Tag, Wrench, ArrowRight, Star, Zap, LogOut, Heart, Layers } from "lucide-react";
+import { ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search, Crown, Tag, Wrench, ArrowRight, Star, Zap, LogOut, Heart, Layers, Building2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { motion, AnimatePresence } from "framer-motion";
-import { useUserStore, TIER_CONFIG, type Tier } from "@/store/user-store";
+import { useUserStore, TIER_CONFIG, isOwner, isManager, type Tier } from "@/store/user-store";
 import { SearchBar } from "@/components/SearchBar";
 
 const HARDWARE_LINKS = [
@@ -118,9 +118,14 @@ function UserMenu() {
             <Link to="/wishlist" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm hover:bg-muted/30 transition-colors">
               <Heart className="w-4 h-4 text-muted-foreground" /> Wishlist
             </Link>
-            {user.role === "admin" && (
+            {isOwner(user) && (
               <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-primary hover:bg-primary/10 transition-colors border-t border-border">
-                <Layers className="w-4 h-4" /> Admin Dashboard
+                <Layers className="w-4 h-4" /> Owner Dashboard
+              </Link>
+            )}
+            {isManager(user) && (
+              <Link to="/manager" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-primary hover:bg-primary/10 transition-colors border-t border-border">
+                <Building2 className="w-4 h-4" /> Manager Panel
               </Link>
             )}
             {user.tier === "platinum" && (
@@ -273,12 +278,20 @@ export function Navbar() {
                 Contact
               </Link>
 
-              {user?.role === "admin" && (
+              {isOwner(user) && (
                 <Link
                   to="/dashboard"
                   className={`flex items-center gap-1.5 text-xs font-mono tracking-widest uppercase px-3 py-1.5 border rounded-sm transition-all ${location.pathname === "/dashboard" ? "border-primary bg-primary/20 text-primary" : "border-primary/50 text-primary hover:bg-primary/10"}`}
                 >
                   <Layers className="w-3.5 h-3.5" /> Dashboard
+                </Link>
+              )}
+              {isManager(user) && (
+                <Link
+                  to="/manager"
+                  className={`flex items-center gap-1.5 text-xs font-mono tracking-widest uppercase px-3 py-1.5 border rounded-sm transition-all ${location.pathname === "/manager" ? "border-primary bg-primary/20 text-primary" : "border-primary/50 text-primary hover:bg-primary/10"}`}
+                >
+                  <Building2 className="w-3.5 h-3.5" /> My Branch
                 </Link>
               )}
             </nav>
@@ -395,9 +408,14 @@ export function Navbar() {
               <Link to="/wishlist" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
                 <Heart className="w-6 h-6" /> Wishlist
               </Link>
-              {user?.role === "admin" && (
+              {isOwner(user) && (
                 <Link to="/dashboard" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-primary/40 text-primary hover:opacity-80 transition-opacity">
                   <Layers className="w-6 h-6" /> Dashboard
+                </Link>
+              )}
+              {isManager(user) && (
+                <Link to="/manager" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-primary/40 text-primary hover:opacity-80 transition-opacity">
+                  <Building2 className="w-6 h-6" /> My Branch
                 </Link>
               )}
             </div>

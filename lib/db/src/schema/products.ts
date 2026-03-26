@@ -71,11 +71,47 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role").notNull().default("user"), // user | admin
+  role: text("role").notNull().default("user"), // user(buyer) | owner | manager
+  branchId: integer("branch_id"), // for managers: which branch they manage
   tier: text("tier").notNull().default("bronze"), // bronze | silver | gold | platinum
   totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).notNull().default("0"),
   purchaseCount: integer("purchase_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const branchesTable = pgTable("branches", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  location: text("location").notNull().default(""),
+  managerId: integer("manager_id"),
+  contact: text("contact").notNull().default(""),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const accessCodesTable = pgTable("access_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  type: text("type").notNull(), // 'owner' | 'manager' | 'employee'
+  branchId: integer("branch_id"),
+  createdBy: integer("created_by").notNull(),
+  label: text("label").notNull().default(""),
+  active: boolean("active").notNull().default(true),
+  expiresAt: timestamp("expires_at"),
+  usedBy: integer("used_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const branchProductsTable = pgTable("branch_products", {
+  id: serial("id").primaryKey(),
+  branchId: integer("branch_id").notNull(),
+  productId: integer("product_id").notNull(),
+  available: boolean("available").notNull().default(true),
+  stock: integer("stock"),
+  discount: decimal("discount", { precision: 5, scale: 2 }),
+  featured: boolean("featured").notNull().default(false),
+  notes: text("notes").notNull().default(""),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const wishlistsTable = pgTable("wishlists", {
@@ -117,3 +153,6 @@ export type CartItem = typeof cartItemsTable.$inferSelect;
 export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
 export type Category = typeof categoriesTable.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type Branch = typeof branchesTable.$inferSelect;
+export type AccessCode = typeof accessCodesTable.$inferSelect;
+export type BranchProduct = typeof branchProductsTable.$inferSelect;

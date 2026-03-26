@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
-import { useUserStore, TIER_CONFIG, type Tier } from "@/store/user-store";
-import { User, Mail, Lock, LogOut, Star, Zap, ShieldCheck, Crown, ChevronRight } from "lucide-react";
+import { useUserStore, TIER_CONFIG, isOwner, isManager, isStaff, type Tier } from "@/store/user-store";
+import { User, Mail, Lock, LogOut, Star, Zap, ShieldCheck, Crown, ChevronRight, Building2, Key } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const API_BASE = (() => {
@@ -72,16 +72,16 @@ function ProfileView() {
     setClaimError("");
     setClaimLoading(true);
     try {
-      const updated = await apiFetch("/auth/claim-admin", {
+      const updated = await apiFetch("/auth/claim-role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeCode: claimCode.trim() }),
+        body: JSON.stringify({ accessCode: claimCode.trim() }),
       });
       setUser(updated);
       setClaimSuccess(true);
       setClaimCode("");
     } catch (err: unknown) {
-      setClaimError(err instanceof Error ? err.message : "Invalid code.");
+      setClaimError(err instanceof Error ? err.message : "Invalid or expired access code.");
     } finally {
       setClaimLoading(false);
     }
@@ -181,8 +181,8 @@ function ProfileView() {
         </motion.div>
       )}
 
-      {/* Claim Admin Access (shown only if not already admin) */}
-      {user.role !== "admin" && (
+      {/* Claim Access Code (shown only if not already staff) */}
+      {!isStaff(user) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -190,26 +190,26 @@ function ProfileView() {
           className="border border-border bg-card rounded-sm p-6"
         >
           <div className="flex items-center gap-3 mb-4">
-            <ShieldCheck className="w-5 h-5 text-primary" />
-            <h3 className="font-heading font-bold uppercase text-sm">Claim Admin Access</h3>
+            <Key className="w-5 h-5 text-primary" />
+            <h3 className="font-heading font-bold uppercase text-sm">Claim Staff Access</h3>
           </div>
           <p className="font-mono text-xs text-muted-foreground mb-4">
-            AxiomCraft staff can enter their employee code below to unlock the admin Dashboard without creating a new account.
+            AxiomCraft staff can enter their access code below to unlock their role — Owner or Manager — without creating a new account.
           </p>
           {claimSuccess ? (
             <div className="flex items-center gap-2 px-4 py-3 border border-primary/40 bg-primary/10 rounded-sm">
               <ShieldCheck className="w-4 h-4 text-primary" />
-              <span className="font-mono text-sm text-primary">Admin access granted — Dashboard link now visible in the navbar.</span>
+              <span className="font-mono text-sm text-primary">Role granted — your access panel is now visible in the navbar.</span>
             </div>
           ) : (
             <form onSubmit={handleClaimAdmin} className="flex gap-3">
               <div className="relative flex-1">
-                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 <input
                   type="text"
                   value={claimCode}
                   onChange={(e) => setClaimCode(e.target.value)}
-                  placeholder="AXIOM-EMPLOYEE-2024"
+                  placeholder="AXM-MGR-SH1-ABC123-2025"
                   autoComplete="off"
                   className="w-full bg-background border border-border rounded-sm pl-10 pr-4 py-2.5 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
                 />
@@ -229,8 +229,8 @@ function ProfileView() {
         </motion.div>
       )}
 
-      {/* Admin dashboard shortcut */}
-      {user.role === "admin" && (
+      {/* Owner dashboard shortcut */}
+      {isOwner(user) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,16 +240,36 @@ function ProfileView() {
           <div className="flex items-center gap-4">
             <ShieldCheck className="w-8 h-8 text-primary" />
             <div>
-              <h4 className="font-heading font-bold uppercase text-primary">Admin Access Active</h4>
-              <p className="font-mono text-xs text-muted-foreground">Manage products, prices, and inventory from the dashboard.</p>
+              <h4 className="font-heading font-bold uppercase text-primary">Owner Access Active</h4>
+              <p className="font-mono text-xs text-muted-foreground">Manage products, branches, access codes, and full inventory.</p>
             </div>
           </div>
           <Link to="/dashboard">
-            <motion.button
-              whileHover={{ x: 4 }}
-              className="flex items-center gap-2 font-mono text-sm text-primary uppercase"
-            >
-              Open <ChevronRight className="w-4 h-4" />
+            <motion.button whileHover={{ x: 4 }} className="flex items-center gap-2 font-mono text-sm text-primary uppercase">
+              Open Dashboard <ChevronRight className="w-4 h-4" />
+            </motion.button>
+          </Link>
+        </motion.div>
+      )}
+
+      {/* Manager panel shortcut */}
+      {isManager(user) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="border border-primary/50 bg-primary/5 rounded-sm p-6 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <Building2 className="w-8 h-8 text-primary" />
+            <div>
+              <h4 className="font-heading font-bold uppercase text-primary">Branch Manager Access Active</h4>
+              <p className="font-mono text-xs text-muted-foreground">Manage your branch's product availability, stock, and discounts.</p>
+            </div>
+          </div>
+          <Link to="/manager">
+            <motion.button whileHover={{ x: 4 }} className="flex items-center gap-2 font-mono text-sm text-primary uppercase">
+              Open Panel <ChevronRight className="w-4 h-4" />
             </motion.button>
           </Link>
         </motion.div>

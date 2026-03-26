@@ -112,8 +112,30 @@ AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always d
 **Typography:** Space Grotesk (headings), Inter (body), JetBrains Mono (specs/numbers)
 **Animations:** Framer Motion scroll-linked reveals, spring micro-interactions, staggered entrances
 **State:** Zustand cart store + user store (both persisted to localStorage); TIER_CONFIG (Bronze/Silver/Gold/Platinum)
-**Auth:** bcryptjs + express-session; POST /api/auth/register|login|logout, GET /api/auth/me
-**Navbar:** Dropdown menus (Hardware → categories, Tools → PC Builder/Compare/Deals), user dropdown with tier badge, search overlay, animated cart badge, mobile slide-over
+**Auth:** bcryptjs + express-session; POST /api/auth/register|login|logout|claim-role, GET /api/auth/me
+
+**Multi-Role System:**
+- **owner** — full access (migrated from old "admin"). Manages products, branches, access codes.
+- **manager** — branch-specific access. Manages product availability/stock/discounts for their assigned branch.
+- **user/buyer** — standard customer. Shopping, cart, wishlist, tiers.
+- Access codes are generated dynamically by owners in the Dashboard > Access Codes tab.
+- Access code format: `AXM-OWN-XXXXXX-YYYY` (owner), `AXM-MGR-SHID-XXXXXX-YYYY` (manager)
+- Roles are claimed via POST /api/auth/claim-role with { accessCode }
+
+**Multi-Branch System:**
+- Branches table: name, location, contact, managerId, active
+- branch_products table: per-product overrides for each branch (available, stock, discount, featured, notes)
+- GET /api/branches — all branches (public)
+- POST/PUT/DELETE /api/branches/:id — owner only
+- GET /api/branches/:branchId/products — products with branch data
+- PUT /api/branches/:branchId/products/:productId — update branch product (owner or branch manager)
+- GET /api/products/:productId/branches — branch availability for a product
+
+**Dashboards:**
+- /dashboard — Owner Panel (Products, Branches, Access Codes tabs)
+- /manager — Manager Panel (branch product management for their assigned branch)
+
+**Navbar:** Dropdown menus (Hardware → categories, Tools → PC Builder/Compare/Deals), user dropdown with tier badge, search overlay, animated cart badge, mobile slide-over. Shows "Dashboard" for owners, "My Branch" for managers.
 **API patterns:** API_BASE = `import.meta.env.BASE_URL.replace(/\/$/, "") + "/api"`; Product images: `https://picsum.photos/seed/{slug}/800/600`
 **After DB schema changes:** rebuild declarations: `cd lib/db && pnpm exec tsc -p tsconfig.json`
 **Seed:** `pnpm --filter @workspace/scripts run seed` — populates 6 categories, 20 hardware products

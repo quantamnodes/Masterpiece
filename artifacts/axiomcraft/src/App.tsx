@@ -18,6 +18,7 @@ import Compare from "@/pages/Compare";
 import Platinum from "@/pages/Platinum";
 import Wishlist from "@/pages/Wishlist";
 import Dashboard from "@/pages/Dashboard";
+import ManagerPanel from "@/pages/ManagerPanel";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -54,6 +55,7 @@ function AppRoutes() {
       <Route path="/platinum" element={<Platinum />} />
       <Route path="/wishlist" element={<Wishlist />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/manager" element={<ManagerPanel />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

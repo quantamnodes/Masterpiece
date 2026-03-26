@@ -1,9 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-
-const EMPLOYEE_CODE = process.env.EMPLOYEE_CODE || "AXIOM-EMPLOYEE-2024";
+import { db, usersTable, accessCodesTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
 
 const router = Router();
 
@@ -26,10 +24,25 @@ function formatUser(user: typeof usersTable.$inferSelect) {
     username: user.username,
     email: user.email,
     role: user.role,
+    branchId: user.branchId,
     tier: user.tier,
     totalSpent: parseFloat(user.totalSpent),
     purchaseCount: user.purchaseCount,
   };
+}
+
+async function resolveAccessCode(code: string): Promise<{ role: string; branchId: number | null } | null> {
+  if (!code || !code.trim()) return null;
+  const trimmed = code.trim();
+  const [acRow] = await db
+    .select()
+    .from(accessCodesTable)
+    .where(and(eq(accessCodesTable.code, trimmed), eq(accessCodesTable.active, true)))
+    .limit(1);
+  if (!acRow) return null;
+  if (acRow.expiresAt && new Date(acRow.expiresAt) < new Date()) return null;
+  const role = acRow.type === "owner" ? "owner" : acRow.type === "manager" ? "manager" : "user";
+  return { role, branchId: acRow.branchId ?? null };
 }
 
 // POST /auth/register
@@ -39,23 +52,33 @@ router.post("/auth/register", async (req, res) => {
     if (!username || !email || !password) {
       return res.status(400).json({ error: "username, email and password are required" });
     }
-    const existing = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email))
-      .limit(1);
+    const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
     if (existing.length > 0) {
       return res.status(409).json({ error: "Email already registered" });
     }
     const passwordHash = await bcrypt.hash(password, 10);
-    const role = (typeof employeeCode === "string" && employeeCode.trim() === EMPLOYEE_CODE) ? "admin" : "user";
+    let role = "user";
+    let branchId: number | null = null;
+    if (employeeCode && typeof employeeCode === "string") {
+      const resolved = await resolveAccessCode(employeeCode);
+      if (resolved) {
+        role = resolved.role;
+        branchId = resolved.branchId;
+        await db.update(accessCodesTable)
+          .set({ usedBy: -1 })
+          .where(eq(accessCodesTable.code, employeeCode.trim()));
+      }
+    }
     const [user] = await db
       .insert(usersTable)
-      .values({ username, email, passwordHash, role, tier: "bronze", totalSpent: "0", purchaseCount: 0 })
+      .values({ username, email, passwordHash, role, branchId, tier: "bronze", totalSpent: "0", purchaseCount: 0 })
       .returning();
+    await db.update(accessCodesTable)
+      .set({ usedBy: user.id })
+      .where(eq(accessCodesTable.code, (employeeCode || "").trim()));
     req.session.userId = user.id;
     return res.status(201).json(formatUser(user));
-  } catch (e) {
+  } catch {
     return res.status(500).json({ error: "Registration failed" });
   }
 });
@@ -67,22 +90,19 @@ router.post("/auth/login", async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: "email and password are required" });
     }
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email))
-      .limit(1);
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-    // If the correct employee code is provided at login, upgrade role to admin
-    if (typeof employeeCode === "string" && employeeCode.trim() === EMPLOYEE_CODE && user.role !== "admin") {
-      await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.id, user.id));
-      user.role = "admin";
+    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+    if (employeeCode && typeof employeeCode === "string" && user.role === "user") {
+      const resolved = await resolveAccessCode(employeeCode);
+      if (resolved) {
+        await db.update(usersTable)
+          .set({ role: resolved.role, branchId: resolved.branchId })
+          .where(eq(usersTable.id, user.id));
+        user.role = resolved.role;
+        user.branchId = resolved.branchId;
+      }
     }
     req.session.userId = user.id;
     return res.json(formatUser(user));
@@ -91,48 +111,39 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
-// POST /auth/claim-admin — allows a logged-in user to upgrade their role
-router.post("/auth/claim-admin", async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
+// POST /auth/claim-role — allows a logged-in user to claim a role via access code
+router.post("/auth/claim-role", async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
   try {
-    const { employeeCode } = req.body;
-    if (!employeeCode || typeof employeeCode !== "string" || employeeCode.trim() !== EMPLOYEE_CODE) {
-      return res.status(403).json({ error: "Invalid employee code" });
-    }
+    const { accessCode } = req.body;
+    if (!accessCode) return res.status(400).json({ error: "accessCode is required" });
+    const resolved = await resolveAccessCode(accessCode);
+    if (!resolved) return res.status(403).json({ error: "Invalid or expired access code" });
     const [updated] = await db
       .update(usersTable)
-      .set({ role: "admin" })
+      .set({ role: resolved.role, branchId: resolved.branchId })
       .where(eq(usersTable.id, req.session.userId))
       .returning();
+    await db.update(accessCodesTable)
+      .set({ usedBy: req.session.userId })
+      .where(eq(accessCodesTable.code, accessCode.trim()));
     return res.json(formatUser(updated));
   } catch {
-    return res.status(500).json({ error: "Failed to claim admin access" });
+    return res.status(500).json({ error: "Failed to claim role" });
   }
 });
 
 // POST /auth/logout
 router.post("/auth/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.json({ ok: true });
-  });
+  req.session.destroy(() => res.json({ ok: true }));
 });
 
 // GET /auth/me
 router.get("/auth/me", async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Not authenticated" });
-  }
+  if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
   try {
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.session.userId))
-      .limit(1);
-    if (!user) {
-      return res.status(401).json({ error: "User not found" });
-    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
+    if (!user) return res.status(401).json({ error: "User not found" });
     const tier = computeTier(parseFloat(user.totalSpent));
     return res.json({ ...formatUser(user), tier });
   } catch {
