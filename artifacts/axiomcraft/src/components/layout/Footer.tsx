@@ -31,6 +31,12 @@ export function Footer() {
           </div>
 
           <div>
+            <h4 className="font-heading font-bold uppercase tracking-wider mb-4 text-foreground">Company</h4>
+            <ul className="space-y-3 mb-6">
+              <li><Link to="/contact" className="text-muted-foreground hover:text-primary transition-colors text-sm">Contact Us</Link></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">About</a></li>
+              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">Careers</a></li>
+            </ul>
             <h4 className="font-heading font-bold uppercase tracking-wider mb-4 text-foreground">Connect</h4>
             <div className="flex gap-4">
               <a href="#" className="w-10 h-10 bg-background border border-border flex items-center justify-center rounded-sm hover:border-primary hover:text-primary transition-all">
