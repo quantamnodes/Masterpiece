@@ -7,6 +7,7 @@ import {
   Plus, Pencil, Trash2, Tag, X, Save, Lock, AlertTriangle, Check,
   ChevronDown, ChevronUp, Search, Package, DollarSign, ImageIcon, Layers,
   Building2, Key, Copy, ToggleLeft, ToggleRight, MapPin, Phone, User,
+  BarChart3, TrendingUp, Activity, Star, SlidersHorizontal, Boxes,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -304,7 +305,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"products" | "branches" | "codes">("products");
+  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock">("overview");
 
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
@@ -328,6 +329,12 @@ export default function Dashboard() {
   const [codeForm, setCodeForm] = useState({ type: "manager", branchId: "", label: "" });
   const [codeSaving, setCodeSaving] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Branch stock state
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const [branchProducts, setBranchProducts] = useState<Array<Product & { branchData: { available: boolean; stock: number | null; discount: string | null; featured: boolean; notes: string } | null }>>([]);
+  const [branchStockLoading, setBranchStockLoading] = useState(false);
+  const [savingCell, setSavingCell] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -358,6 +365,40 @@ export default function Dashboard() {
     } catch {}
   }, []);
 
+  const fetchBranchProducts = useCallback(async (branchId: string) => {
+    if (!branchId) return;
+    setBranchStockLoading(true);
+    try {
+      const res = await fetch(`${API}/branches/${branchId}/products`, { credentials: "include" });
+      if (res.ok) setBranchProducts(await res.json());
+    } catch {}
+    setBranchStockLoading(false);
+  }, []);
+
+  const handleBranchProductField = async (productId: number, field: string, value: boolean | string | number | null) => {
+    if (!selectedBranchId) return;
+    const cellKey = `${productId}-${field}`;
+    setSavingCell(cellKey);
+    setBranchProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? { ...p, branchData: { available: true, stock: null, discount: null, featured: false, notes: "", ...p.branchData, [field]: value } }
+          : p
+      )
+    );
+    try {
+      const product = branchProducts.find((p) => p.id === productId);
+      const current = product?.branchData || { available: true, stock: null, discount: null, featured: false, notes: "" };
+      await fetch(`${API}/branches/${selectedBranchId}/products/${productId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...current, [field]: value }),
+      });
+    } catch {}
+    setSavingCell(null);
+  };
+
   useEffect(() => {
     if (!user) { navigate("/account"); return; }
     if (!isOwner(user)) { navigate("/"); return; }
@@ -365,6 +406,16 @@ export default function Dashboard() {
     fetchBranches();
     fetchCodes();
   }, [user, navigate, fetchProducts, fetchBranches, fetchCodes]);
+
+  useEffect(() => {
+    if (branches.length > 0 && !selectedBranchId) {
+      setSelectedBranchId(String(branches[0].id));
+    }
+  }, [branches, selectedBranchId]);
+
+  useEffect(() => {
+    if (tab === "stock" && selectedBranchId) fetchBranchProducts(selectedBranchId);
+  }, [tab, selectedBranchId, fetchBranchProducts]);
 
   const handleCreate = async (data: FormData) => {
     setSaving(true);
@@ -570,16 +621,18 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-8 border-b border-border">
+        <div className="flex gap-0 mb-8 border-b border-border overflow-x-auto">
           {([
+            { id: "overview", label: "Overview", icon: BarChart3 },
             { id: "products", label: "Products", icon: Package },
             { id: "branches", label: "Branches", icon: Building2 },
             { id: "codes", label: "Access Codes", icon: Key },
+            { id: "stock", label: "Branch Stock", icon: SlidersHorizontal },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex items-center gap-2 px-5 py-3 font-mono text-sm uppercase tracking-wide transition-all border-b-2 -mb-px ${tab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              className={`flex items-center gap-2 px-5 py-3 font-mono text-sm uppercase tracking-wide transition-all border-b-2 -mb-px whitespace-nowrap ${tab === id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               <Icon className="w-4 h-4" /> {label}
             </button>
@@ -853,6 +906,306 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ===================== OVERVIEW TAB ===================== */}
+        {tab === "overview" && (
+          <div className="space-y-8">
+            {/* Key metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                {
+                  label: "Total Products",
+                  value: products.length,
+                  sub: `${products.filter((p) => p.salePrice).length} on sale`,
+                  icon: Package,
+                  color: "text-primary",
+                  bg: "bg-primary/10",
+                },
+                {
+                  label: "Inventory Value",
+                  value: `$${products.reduce((sum, p) => sum + (p.salePrice ?? p.basePrice) * p.stock, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                  sub: `${products.reduce((sum, p) => sum + p.stock, 0).toLocaleString()} units total`,
+                  icon: DollarSign,
+                  color: "text-green-400",
+                  bg: "bg-green-400/10",
+                },
+                {
+                  label: "Active Branches",
+                  value: branches.filter((b) => b.active).length,
+                  sub: `${branches.length} total`,
+                  icon: Building2,
+                  color: "text-blue-400",
+                  bg: "bg-blue-400/10",
+                },
+                {
+                  label: "Access Codes",
+                  value: codes.filter((c) => c.active).length,
+                  sub: `${codes.length} total issued`,
+                  icon: Key,
+                  color: "text-yellow-400",
+                  bg: "bg-yellow-400/10",
+                },
+              ].map((stat) => {
+                const Icon = stat.icon;
+                return (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-card border border-border rounded-sm p-5"
+                  >
+                    <div className={`w-8 h-8 rounded-sm ${stat.bg} flex items-center justify-center mb-3`}>
+                      <Icon className={`w-4 h-4 ${stat.color}`} />
+                    </div>
+                    <p className={`font-mono text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                    <p className="font-heading font-bold text-sm uppercase mt-1">{stat.label}</p>
+                    <p className="font-mono text-xs text-muted-foreground mt-0.5">{stat.sub}</p>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Category breakdown */}
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-card border border-border rounded-sm p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <Boxes className="w-4 h-4 text-primary" />
+                  <h3 className="font-heading font-bold uppercase text-sm">Category Breakdown</h3>
+                </div>
+                <div className="space-y-3">
+                  {CATEGORIES.map((cat) => {
+                    const catProducts = products.filter((p) => p.categorySlug === cat.slug);
+                    const catValue = catProducts.reduce((sum, p) => sum + (p.salePrice ?? p.basePrice), 0);
+                    const pct = products.length > 0 ? Math.round((catProducts.length / products.length) * 100) : 0;
+                    return (
+                      <div key={cat.slug}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-mono text-xs text-muted-foreground uppercase tracking-wide">{cat.label}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-xs text-muted-foreground">${catValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                            <span className="font-mono text-xs font-bold text-foreground w-6 text-right">{catProducts.length}</span>
+                          </div>
+                        </div>
+                        <div className="h-1 bg-muted rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct}%` }}
+                            transition={{ delay: 0.2, duration: 0.6, ease: "easeOut" }}
+                            className="h-full bg-primary rounded-full"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+
+              {/* Low stock alerts */}
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card border border-border rounded-sm p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <AlertTriangle className="w-4 h-4 text-orange-400" />
+                  <h3 className="font-heading font-bold uppercase text-sm">Stock Alerts</h3>
+                  {products.filter((p) => p.stock <= 5).length > 0 && (
+                    <span className="ml-auto font-mono text-[10px] px-2 py-0.5 bg-orange-400/15 text-orange-400 border border-orange-400/30 rounded-sm">
+                      {products.filter((p) => p.stock <= 5).length} items
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {products.filter((p) => p.stock <= 5).length === 0 ? (
+                    <div className="py-8 text-center">
+                      <Check className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                      <p className="font-mono text-xs text-muted-foreground">All products well stocked</p>
+                    </div>
+                  ) : (
+                    products
+                      .filter((p) => p.stock <= 5)
+                      .sort((a, b) => a.stock - b.stock)
+                      .map((p) => (
+                        <div key={p.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+                          <img src={p.imageUrl || `https://picsum.photos/seed/${p.slug}/40/40`} alt={p.name} className="w-8 h-8 object-cover rounded-sm bg-muted shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-mono text-xs truncate">{p.name}</p>
+                            <p className="font-mono text-[10px] text-muted-foreground">{p.sku}</p>
+                          </div>
+                          <span className={`font-mono text-xs font-bold px-2 py-1 rounded-sm shrink-0 ${p.stock === 0 ? "bg-destructive/20 text-destructive" : "bg-orange-400/15 text-orange-400"}`}>
+                            {p.stock === 0 ? "OUT" : `${p.stock} left`}
+                          </span>
+                        </div>
+                      ))
+                  )}
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Branches summary */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-card border border-border rounded-sm p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <Activity className="w-4 h-4 text-primary" />
+                <h3 className="font-heading font-bold uppercase text-sm">Branch Activity</h3>
+                <span className="ml-auto font-mono text-xs text-muted-foreground">{branches.length} branches registered</span>
+              </div>
+              {branches.length === 0 ? (
+                <p className="font-mono text-sm text-muted-foreground text-center py-6">No branches created yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {branches.map((b) => (
+                    <div key={b.id} className="border border-border rounded-sm p-4 flex items-start gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${b.active ? "bg-green-400" : "bg-muted-foreground"}`} />
+                      <div className="min-w-0">
+                        <p className="font-heading font-bold text-sm uppercase truncate">{b.name}</p>
+                        {b.location && <p className="font-mono text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3 shrink-0" />{b.location}</p>}
+                        <p className={`font-mono text-[10px] mt-1 ${b.active ? "text-green-400" : "text-muted-foreground"}`}>{b.active ? "● Active" : "○ Inactive"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
+            {/* Recent codes */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="bg-card border border-border rounded-sm p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <h3 className="font-heading font-bold uppercase text-sm">Recent Access Codes</h3>
+                <span className="ml-auto font-mono text-xs text-muted-foreground">{codes.filter((c) => c.active).length} active</span>
+              </div>
+              {codes.length === 0 ? (
+                <p className="font-mono text-sm text-muted-foreground text-center py-6">No access codes generated yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {codes.slice(0, 5).map((c) => (
+                    <div key={c.id} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+                      <span className={`font-mono text-xs font-bold tracking-wider ${c.active ? "text-primary" : "text-muted-foreground line-through"}`}>{c.code}</span>
+                      <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-sm ml-auto ${c.type === "owner" ? "bg-yellow-400/20 text-yellow-400" : c.type === "manager" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>{c.type}</span>
+                      {c.label && <span className="font-mono text-[10px] text-muted-foreground hidden sm:block truncate max-w-[120px]">{c.label}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+
+        {/* ===================== BRANCH STOCK TAB ===================== */}
+        {tab === "stock" && (
+          <div className="space-y-6">
+            {/* Branch selector header */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <h2 className="font-heading font-bold text-xl uppercase flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-primary" /> Branch Stock Management
+              </h2>
+              {branches.length > 0 ? (
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
+                  className="bg-card border border-border rounded-sm px-4 py-2 font-mono text-sm text-foreground focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                >
+                  {branches.map((b) => (
+                    <option key={b.id} value={String(b.id)}>{b.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="font-mono text-sm text-muted-foreground">No branches yet — create one in the Branches tab.</span>
+              )}
+            </div>
+
+            {/* Table */}
+            {branches.length > 0 && (
+              <div className="border border-border rounded-sm overflow-hidden">
+                {/* Table header */}
+                <div className="grid grid-cols-[2fr_80px_80px_90px_80px_1fr] gap-0 bg-muted/30 px-4 py-2.5 border-b border-border">
+                  {["Product", "Available", "Stock", "Discount %", "Featured", "Notes"].map((h) => (
+                    <span key={h} className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{h}</span>
+                  ))}
+                </div>
+
+                {/* Table body */}
+                {branchStockLoading ? (
+                  <div className="space-y-0">
+                    {Array(8).fill(0).map((_, i) => (
+                      <div key={i} className="h-14 border-b border-border animate-pulse bg-card/50 last:border-0" />
+                    ))}
+                  </div>
+                ) : branchProducts.length === 0 ? (
+                  <div className="py-16 text-center font-mono text-sm text-muted-foreground">No products found.</div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {branchProducts.map((p) => {
+                      const bd = p.branchData;
+                      const available = bd?.available ?? true;
+                      const featured = bd?.featured ?? false;
+                      const stock = bd?.stock ?? p.stock;
+                      const discount = bd?.discount ?? "0";
+                      const notes = bd?.notes ?? "";
+
+                      return (
+                        <div key={p.id} className="grid grid-cols-[2fr_80px_80px_90px_80px_1fr] items-center gap-3 px-4 py-3 hover:bg-muted/10 transition-colors">
+                          {/* Product */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={p.imageUrl || `https://picsum.photos/seed/${p.slug}/40/40`}
+                              alt={p.name}
+                              className="w-8 h-8 object-cover rounded-sm bg-muted shrink-0"
+                            />
+                            <span className="font-heading font-bold text-sm truncate">{p.name}</span>
+                          </div>
+
+                          {/* Available toggle */}
+                          <button
+                            onClick={() => handleBranchProductField(p.id, "available", !available)}
+                            className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${available ? "bg-primary" : "bg-border"}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${available ? "translate-x-5" : "translate-x-0"}`} />
+                          </button>
+
+                          {/* Stock input */}
+                          <input
+                            type="number"
+                            min="0"
+                            defaultValue={String(stock)}
+                            key={`stock-${p.id}-${selectedBranchId}`}
+                            onBlur={(e) => handleBranchProductField(p.id, "stock", parseInt(e.target.value) || 0)}
+                            className={`w-full bg-background border rounded-sm px-2 py-1.5 font-mono text-sm text-center focus:outline-none focus:border-primary transition-colors ${savingCell === `${p.id}-stock` ? "border-primary/50 animate-pulse" : "border-border"}`}
+                          />
+
+                          {/* Discount input */}
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            defaultValue={String(parseFloat(discount || "0"))}
+                            key={`disc-${p.id}-${selectedBranchId}`}
+                            onBlur={(e) => handleBranchProductField(p.id, "discount", e.target.value)}
+                            className={`w-full bg-background border rounded-sm px-2 py-1.5 font-mono text-sm text-center focus:outline-none focus:border-primary transition-colors ${savingCell === `${p.id}-discount` ? "border-primary/50 animate-pulse" : "border-border"}`}
+                          />
+
+                          {/* Featured toggle */}
+                          <button
+                            onClick={() => handleBranchProductField(p.id, "featured", !featured)}
+                            className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 ${featured ? "bg-primary" : "bg-border"}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${featured ? "translate-x-5" : "translate-x-0"}`} />
+                          </button>
+
+                          {/* Notes input */}
+                          <input
+                            type="text"
+                            defaultValue={notes}
+                            key={`notes-${p.id}-${selectedBranchId}`}
+                            placeholder="Notes..."
+                            onBlur={(e) => handleBranchProductField(p.id, "notes", e.target.value)}
+                            className="w-full bg-background border border-border rounded-sm px-2.5 py-1.5 font-mono text-xs text-muted-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
