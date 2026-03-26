@@ -35,21 +35,26 @@ async function resolveAccessCode(code: string): Promise<{ role: string; branchId
   if (!code || !code.trim()) return null;
   const trimmed = code.trim();
 
-  // Environment variable bootstrap fallback — always works even after a DB wipe
-  const bootstrapCode = process.env.OWNER_BOOTSTRAP_CODE ?? "AXIOM-OWNER-22015";
-  if (trimmed === bootstrapCode) {
-    return { role: "owner", branchId: null };
-  }
-
+  // DB lookup first — active codes in the database take precedence
   const [acRow] = await db
     .select()
     .from(accessCodesTable)
     .where(and(eq(accessCodesTable.code, trimmed), eq(accessCodesTable.active, true)))
     .limit(1);
-  if (!acRow) return null;
-  if (acRow.expiresAt && new Date(acRow.expiresAt) < new Date()) return null;
-  const role = acRow.type === "owner" ? "owner" : acRow.type === "manager" ? "manager" : "user";
-  return { role, branchId: acRow.branchId ?? null };
+  if (acRow) {
+    if (acRow.expiresAt && new Date(acRow.expiresAt) < new Date()) return null;
+    const role = acRow.type === "owner" ? "owner" : acRow.type === "manager" ? "manager" : "user";
+    return { role, branchId: acRow.branchId ?? null };
+  }
+
+  // Environment variable bootstrap fallback — only used when DB returns nothing
+  // (e.g. after a DB wipe before re-seeding). Rotate OWNER_BOOTSTRAP_CODE in production.
+  const bootstrapCode = process.env.OWNER_BOOTSTRAP_CODE ?? "AXIOM-OWNER-22015";
+  if (trimmed === bootstrapCode) {
+    return { role: "owner", branchId: null };
+  }
+
+  return null;
 }
 
 // POST /auth/register
