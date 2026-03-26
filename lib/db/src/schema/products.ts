@@ -133,6 +133,17 @@ export const reviewsTable = pgTable("reviews", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const ordersTable = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  itemCount: integer("item_count").notNull().default(1),
+  status: text("status").notNull().default("completed"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Order = typeof ordersTable.$inferSelect;
+
 export const insertProductSchema = createInsertSchema(productsTable).omit({
   id: true,
   createdAt: true,

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, productsTable, usersTable } from "@workspace/db";
+import { db, pool, productsTable, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -132,6 +132,40 @@ router.patch("/admin/products/:id/price", requireAdmin, async (req, res) => {
     return res.json({ product: formatProduct(updated) });
   } catch {
     return res.status(500).json({ error: "Failed to update price" });
+  }
+});
+
+// GET /admin/sales — daily (last 30 days) and monthly (last 12 months) revenue
+router.get("/admin/sales", requireAdmin, async (req, res) => {
+  try {
+    const [daily, monthly] = await Promise.all([
+      pool.query(`
+        SELECT
+          TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS date,
+          COUNT(*)::int AS orders,
+          ROUND(SUM(total_amount)::numeric, 2) AS revenue
+        FROM orders
+        WHERE created_at >= NOW() - INTERVAL '30 days' AND status = 'completed'
+        GROUP BY TO_CHAR(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+        ORDER BY date ASC
+      `),
+      pool.query(`
+        SELECT
+          TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM') AS month,
+          COUNT(*)::int AS orders,
+          ROUND(SUM(total_amount)::numeric, 2) AS revenue
+        FROM orders
+        WHERE created_at >= NOW() - INTERVAL '12 months' AND status = 'completed'
+        GROUP BY DATE_TRUNC('month', created_at)
+        ORDER BY month ASC
+      `),
+    ]);
+    res.json({
+      daily: daily.rows.map((r: any) => ({ date: r.date, orders: r.orders, revenue: parseFloat(r.revenue) })),
+      monthly: monthly.rows.map((r: any) => ({ month: r.month, orders: r.orders, revenue: parseFloat(r.revenue) })),
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to fetch sales data" });
   }
 });
 

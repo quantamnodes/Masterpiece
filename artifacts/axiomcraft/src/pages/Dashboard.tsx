@@ -1,4 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid,
+} from "recharts";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useUserStore, isOwner } from "@/store/user-store";
@@ -336,6 +340,12 @@ export default function Dashboard() {
   const [branchStockLoading, setBranchStockLoading] = useState(false);
   const [savingCell, setSavingCell] = useState<string | null>(null);
 
+  // Sales data state
+  const [salesData, setSalesData] = useState<{
+    daily: Array<{ date: string; orders: number; revenue: number }>;
+    monthly: Array<{ month: string; orders: number; revenue: number }>;
+  }>({ daily: [], monthly: [] });
+
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -399,13 +409,21 @@ export default function Dashboard() {
     setSavingCell(null);
   };
 
+  const fetchSalesData = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/admin/sales`, { credentials: "include" });
+      if (res.ok) setSalesData(await res.json());
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (!user) { navigate("/account"); return; }
     if (!isOwner(user)) { navigate("/"); return; }
     fetchProducts();
     fetchBranches();
     fetchCodes();
-  }, [user, navigate, fetchProducts, fetchBranches, fetchCodes]);
+    fetchSalesData();
+  }, [user, navigate, fetchProducts, fetchBranches, fetchCodes, fetchSalesData]);
 
   useEffect(() => {
     if (branches.length > 0 && !selectedBranchId) {
@@ -965,6 +983,119 @@ export default function Dashboard() {
                   </motion.div>
                 );
               })}
+            </div>
+
+            {/* Sales Charts */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Monthly Revenue */}
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-card border border-border rounded-sm p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                    <h3 className="font-heading font-bold uppercase text-sm">Monthly Revenue</h3>
+                  </div>
+                  {salesData.monthly.length > 0 && (
+                    <span className="font-mono text-xs text-muted-foreground">
+                      ${salesData.monthly.reduce((s, r) => s + r.revenue, 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} total
+                    </span>
+                  )}
+                </div>
+                {salesData.monthly.length === 0 ? (
+                  <div className="h-44 flex items-center justify-center font-mono text-xs text-muted-foreground">Loading...</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={176}>
+                    <AreaChart data={salesData.monthly} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="monthlyGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#00F0FF" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="#00F0FF" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v: string) => {
+                          const [, m] = v.split("-");
+                          return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(m) - 1] || v;
+                        }}
+                      />
+                      <YAxis
+                        tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: "#09090B", border: "1px solid #27272a", borderRadius: "2px", fontFamily: "monospace", fontSize: "12px" }}
+                        labelStyle={{ color: "#00F0FF", marginBottom: 4 }}
+                        itemStyle={{ color: "#a1a1aa" }}
+                        formatter={(v: number) => [`$${v.toLocaleString()}`, "Revenue"]}
+                        labelFormatter={(v: string) => {
+                          const [yr, m] = v.split("-");
+                          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                          return `${months[parseInt(m) - 1]} ${yr}`;
+                        }}
+                      />
+                      <Area type="monotone" dataKey="revenue" stroke="#00F0FF" strokeWidth={2} fill="url(#monthlyGrad)" dot={false} activeDot={{ r: 4, fill: "#00F0FF", strokeWidth: 0 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </motion.div>
+
+              {/* Daily Orders */}
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="bg-card border border-border rounded-sm p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-primary" />
+                    <h3 className="font-heading font-bold uppercase text-sm">Daily Sales — Last 30 Days</h3>
+                  </div>
+                  {salesData.daily.length > 0 && (
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {salesData.daily.reduce((s, r) => s + r.orders, 0)} orders
+                    </span>
+                  )}
+                </div>
+                {salesData.daily.length === 0 ? (
+                  <div className="h-44 flex items-center justify-center font-mono text-xs text-muted-foreground">Loading...</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={176}>
+                    <BarChart data={salesData.daily} margin={{ top: 4, right: 0, left: -20, bottom: 0 }} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                        axisLine={false}
+                        tickLine={false}
+                        interval={6}
+                        tickFormatter={(v: string) => {
+                          const d = new Date(v + "T00:00:00");
+                          return `${d.getMonth() + 1}/${d.getDate()}`;
+                        }}
+                      />
+                      <YAxis
+                        tick={{ fill: "#6b7280", fontSize: 10, fontFamily: "monospace" }}
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                      />
+                      <Tooltip
+                        contentStyle={{ background: "#09090B", border: "1px solid #27272a", borderRadius: "2px", fontFamily: "monospace", fontSize: "12px" }}
+                        labelStyle={{ color: "#00F0FF", marginBottom: 4 }}
+                        itemStyle={{ color: "#a1a1aa" }}
+                        formatter={(v: number, name: string) => [name === "revenue" ? `$${v.toLocaleString()}` : v, name === "revenue" ? "Revenue" : "Orders"]}
+                        labelFormatter={(v: string) => {
+                          const d = new Date(v + "T00:00:00");
+                          return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                        }}
+                      />
+                      <Bar dataKey="revenue" fill="#00F0FF" fillOpacity={0.8} radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </motion.div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
