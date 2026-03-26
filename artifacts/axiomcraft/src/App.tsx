@@ -56,12 +56,9 @@ function AppRoutes() {
 }
 
 function App() {
-  const [loading, setLoading] = useState(() => {
-    return !sessionStorage.getItem("axiomcraft_loaded");
-  });
+  const [loading, setLoading] = useState(true);
 
   const handleLoadComplete = () => {
-    sessionStorage.setItem("axiomcraft_loaded", "1");
     setLoading(false);
   };
 

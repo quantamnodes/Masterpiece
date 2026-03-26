@@ -147,29 +147,44 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, []);
+
+  useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
   return (
     <>
-      {/* Search overlay */}
+      {/* Search command palette */}
       <AnimatePresence>
         {searchOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/90 backdrop-blur-xl flex items-start justify-center pt-24 px-4"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4"
+            style={{ background: "rgba(5,5,5,0.85)", backdropFilter: "blur(20px)" }}
             onClick={(e) => { if (e.target === e.currentTarget) setSearchOpen(false); }}
           >
             <motion.div
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              className="w-full max-w-2xl"
+              initial={{ y: -16, opacity: 0, scale: 0.98 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: -16, opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-2xl bg-[#0a0a0c] border border-border rounded-sm shadow-[0_32px_80px_rgba(0,0,0,0.8),0_0_0_1px_rgba(0,240,255,0.06)] overflow-hidden"
             >
+              {/* Top accent line */}
+              <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
               <SearchBar onClose={() => setSearchOpen(false)} />
-              <p className="text-center font-mono text-xs text-muted-foreground mt-3">Press ESC to close</p>
             </motion.div>
           </motion.div>
         )}
@@ -255,7 +270,16 @@ export function Navbar() {
               {/* Search */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-border/50 rounded-sm text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-white/[0.03] transition-all group"
+                aria-label="Search"
+              >
+                <Search className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+                <span className="font-mono text-xs text-muted-foreground/60">Search...</span>
+                <kbd className="flex items-center gap-0.5 font-mono text-[10px] text-muted-foreground/40 border border-border/40 rounded px-1 py-0.5">⌘K</kbd>
+              </button>
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="md:hidden p-2 text-muted-foreground hover:text-primary transition-colors"
                 aria-label="Search"
               >
                 <Search className="w-5 h-5" />
