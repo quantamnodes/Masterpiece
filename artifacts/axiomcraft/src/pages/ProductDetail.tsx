@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "wouter";
 import { Layout } from "@/components/layout/Layout";
 import { useGetProduct, useGetRelatedProducts } from "@workspace/api-client-react";
@@ -20,6 +20,13 @@ export default function ProductDetail() {
 
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<number | undefined>(undefined);
+
+  // Set default variant once product data loads, avoids setting state during render
+  useEffect(() => {
+    if (product?.variants && product.variants.length > 0 && selectedVariantId === undefined) {
+      setSelectedVariantId(product.variants[0].id);
+    }
+  }, [product, selectedVariantId]);
 
   if (isLoading) {
     return (
@@ -64,11 +71,6 @@ export default function ProductDetail() {
   const currentPrice = product.salePrice 
     ? product.salePrice + (activeVariant?.priceModifier || 0)
     : product.basePrice + (activeVariant?.priceModifier || 0);
-
-  // Set default variant if variants exist and none selected
-  if (product.variants?.length > 0 && selectedVariantId === undefined) {
-    setSelectedVariantId(product.variants[0].id);
-  }
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;

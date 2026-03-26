@@ -9,7 +9,7 @@ export default function Home() {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, 200]);
 
-  const { data: featuredData, isLoading } = useListProducts({ limit: 4, sortBy: "newest" });
+  const { data: featuredData, isLoading } = useListProducts({ sortBy: "newest" });
 
   const stats = [
     { value: "50,000+", label: "Units Deployed" },

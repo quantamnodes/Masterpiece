@@ -125,11 +125,12 @@ router.post("/cart", async (req, res) => {
     }
 
     const product = products[0]!;
-    const unitPrice = product.salePrice
+    const baseUnitPrice = product.salePrice
       ? parseFloat(product.salePrice)
       : parseFloat(product.basePrice);
 
     let variantName: string | null = null;
+    let priceModifier = 0;
     if (variantId) {
       const variants = Array.isArray(product.variants)
         ? (product.variants as Array<{ id: number; name: string; priceModifier: number }>)
@@ -137,8 +138,10 @@ router.post("/cart", async (req, res) => {
       const variant = variants.find((v) => v.id === variantId);
       if (variant) {
         variantName = variant.name;
+        priceModifier = variant.priceModifier || 0;
       }
     }
+    const unitPrice = baseUnitPrice + priceModifier;
 
     const normalizedVariantId = variantId ?? null;
 

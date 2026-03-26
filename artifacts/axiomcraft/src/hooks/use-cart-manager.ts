@@ -22,8 +22,8 @@ export function useCartManager() {
   const queryKey = getGetCartQueryKey({ sessionId });
 
   const cartQuery = useGetCart(
-    { sessionId }, 
-    { query: { enabled: !!sessionId } }
+    { sessionId },
+    { query: { queryKey, enabled: !!sessionId } }
   );
 
   const invalidateCart = () => {
