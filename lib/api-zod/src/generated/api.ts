@@ -27,6 +27,9 @@ export const ListProductsQueryParams = zod.object({
   maxPrice: zod.coerce.number().optional(),
   inStockOnly: zod.coerce.boolean().optional(),
   search: zod.coerce.string().optional(),
+  wattage: zod.coerce.string().optional(),
+  memorySpeed: zod.coerce.string().optional(),
+  storageCapacity: zod.coerce.string().optional(),
   sortBy: zod
     .enum(["price_asc", "price_desc", "name_asc", "newest"])
     .optional(),
@@ -361,6 +364,10 @@ export const UpdateCartItemResponse = zod.object({
  */
 export const RemoveCartItemParams = zod.object({
   itemId: zod.coerce.number(),
+});
+
+export const RemoveCartItemQueryParams = zod.object({
+  sessionId: zod.coerce.string(),
 });
 
 export const RemoveCartItemResponse = zod.object({

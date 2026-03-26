@@ -16,6 +16,9 @@ function isSortOption(value: string): value is SortOption {
 
 const SOCKET_OPTIONS = ["AM5", "LGA1851"];
 const FORM_FACTOR_OPTIONS = ["ATX", "mATX"];
+const WATTAGE_OPTIONS = ["850W", "1000W", "1600W"];
+const MEMORY_SPEED_OPTIONS = ["6400 MT/s", "7200 MT/s", "8000 MT/s"];
+const STORAGE_CAPACITY_OPTIONS = ["2TB", "4TB"];
 
 function MultiSelectFilter({
   title,
@@ -77,6 +80,9 @@ export default function Products() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [selectedSockets, setSelectedSockets] = useState<string[]>([]);
   const [selectedFormFactors, setSelectedFormFactors] = useState<string[]>([]);
+  const [selectedWattages, setSelectedWattages] = useState<string[]>([]);
+  const [selectedMemorySpeeds, setSelectedMemorySpeeds] = useState<string[]>([]);
+  const [selectedStorageCapacities, setSelectedStorageCapacities] = useState<string[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
@@ -92,7 +98,14 @@ export default function Products() {
     sortBy,
     socket: selectedSockets.length === 1 ? selectedSockets[0] : undefined,
     formFactor: selectedFormFactors.length === 1 ? selectedFormFactors[0] : undefined,
+    wattage: selectedWattages.length === 1 ? selectedWattages[0] : undefined,
+    memorySpeed: selectedMemorySpeeds.length === 1 ? selectedMemorySpeeds[0] : undefined,
+    storageCapacity: selectedStorageCapacities.length === 1 ? selectedStorageCapacities[0] : undefined,
   });
+
+  type Spec = { name: string; value: string };
+  const getSpecs = (p: { specs: unknown }): Spec[] =>
+    Array.isArray(p.specs) ? (p.specs as Spec[]) : [];
 
   const filteredProducts = (() => {
     if (!productsData?.products) return [];
@@ -100,18 +113,37 @@ export default function Products() {
     if (selectedSockets.length > 1) {
       list = list.filter((p) =>
         selectedSockets.some((s) =>
-          (p.specs as Array<{ name: string; value: string }>).some(
-            (spec) => spec.name === "Socket" && spec.value === s,
-          ),
+          getSpecs(p).some((spec) => spec.name === "Socket" && spec.value === s),
         ),
       );
     }
     if (selectedFormFactors.length > 1) {
       list = list.filter((p) =>
         selectedFormFactors.some((ff) =>
-          (p.specs as Array<{ name: string; value: string }>).some(
-            (spec) => spec.name === "Form Factor" && spec.value === ff,
+          getSpecs(p).some((spec) => spec.name === "Form Factor" && spec.value === ff),
+        ),
+      );
+    }
+    if (selectedWattages.length > 1) {
+      list = list.filter((p) =>
+        selectedWattages.some((w) =>
+          getSpecs(p).some((spec) => spec.name === "Wattage" && spec.value.includes(w)),
+        ),
+      );
+    }
+    if (selectedMemorySpeeds.length > 1) {
+      list = list.filter((p) =>
+        selectedMemorySpeeds.some((ms) =>
+          getSpecs(p).some((spec) =>
+            (spec.name === "Speed" || spec.name === "Memory Speed") && spec.value.includes(ms),
           ),
+        ),
+      );
+    }
+    if (selectedStorageCapacities.length > 1) {
+      list = list.filter((p) =>
+        selectedStorageCapacities.some((sc) =>
+          getSpecs(p).some((spec) => spec.name === "Capacity" && spec.value.includes(sc)),
         ),
       );
     }
@@ -122,9 +154,20 @@ export default function Products() {
     setSelectedSockets((prev) =>
       prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
     );
-
   const toggleFormFactor = (val: string) =>
     setSelectedFormFactors((prev) =>
+      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
+    );
+  const toggleWattage = (val: string) =>
+    setSelectedWattages((prev) =>
+      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
+    );
+  const toggleMemorySpeed = (val: string) =>
+    setSelectedMemorySpeeds((prev) =>
+      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
+    );
+  const toggleStorageCapacity = (val: string) =>
+    setSelectedStorageCapacities((prev) =>
       prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
     );
 
@@ -132,13 +175,19 @@ export default function Products() {
     !!category ||
     inStockOnly ||
     selectedSockets.length > 0 ||
-    selectedFormFactors.length > 0;
+    selectedFormFactors.length > 0 ||
+    selectedWattages.length > 0 ||
+    selectedMemorySpeeds.length > 0 ||
+    selectedStorageCapacities.length > 0;
 
   const clearFilters = () => {
     setCategory(undefined);
     setInStockOnly(false);
     setSelectedSockets([]);
     setSelectedFormFactors([]);
+    setSelectedWattages([]);
+    setSelectedMemorySpeeds([]);
+    setSelectedStorageCapacities([]);
     window.history.pushState({}, "", "/products");
   };
 
@@ -199,6 +248,27 @@ export default function Products() {
         onToggle={toggleFormFactor}
       />
 
+      <MultiSelectFilter
+        title="Wattage"
+        options={WATTAGE_OPTIONS}
+        selected={selectedWattages}
+        onToggle={toggleWattage}
+      />
+
+      <MultiSelectFilter
+        title="Memory Speed"
+        options={MEMORY_SPEED_OPTIONS}
+        selected={selectedMemorySpeeds}
+        onToggle={toggleMemorySpeed}
+      />
+
+      <MultiSelectFilter
+        title="Storage Capacity"
+        options={STORAGE_CAPACITY_OPTIONS}
+        selected={selectedStorageCapacities}
+        onToggle={toggleStorageCapacity}
+      />
+
       <div>
         <h3 className="font-heading font-bold uppercase tracking-wider mb-3 border-b border-border pb-2">
           Availability
@@ -225,6 +295,9 @@ export default function Products() {
     (category ? 1 : 0) +
     selectedSockets.length +
     selectedFormFactors.length +
+    selectedWattages.length +
+    selectedMemorySpeeds.length +
+    selectedStorageCapacities.length +
     (inStockOnly ? 1 : 0);
 
   return (

@@ -32,7 +32,7 @@ function formatProduct(p: ProductRow) {
 
 router.get("/products", async (req, res) => {
   try {
-    const { category, socket, formFactor, minPrice, maxPrice, inStockOnly, search, sortBy } =
+    const { category, socket, formFactor, wattage, memorySpeed, storageCapacity, minPrice, maxPrice, inStockOnly, search, sortBy } =
       req.query as Record<string, string>;
 
     const conditions = [];
@@ -81,6 +81,39 @@ router.get("/products", async (req, res) => {
             (s.name.toLowerCase().includes("form") ||
               s.name.toLowerCase().includes("factor")) &&
             s.value.toLowerCase().includes(formFactor.toLowerCase()),
+        );
+      });
+    }
+
+    if (wattage) {
+      products = products.filter((p) => {
+        const specs = Array.isArray(p.specs) ? (p.specs as Array<{ name: string; value: string }>) : [];
+        return specs.some(
+          (s) =>
+            s.name.toLowerCase() === "wattage" &&
+            s.value.toLowerCase().includes(wattage.toLowerCase()),
+        );
+      });
+    }
+
+    if (memorySpeed) {
+      products = products.filter((p) => {
+        const specs = Array.isArray(p.specs) ? (p.specs as Array<{ name: string; value: string }>) : [];
+        return specs.some(
+          (s) =>
+            (s.name.toLowerCase() === "speed" || s.name.toLowerCase().includes("memory speed")) &&
+            s.value.toLowerCase().includes(memorySpeed.toLowerCase()),
+        );
+      });
+    }
+
+    if (storageCapacity) {
+      products = products.filter((p) => {
+        const specs = Array.isArray(p.specs) ? (p.specs as Array<{ name: string; value: string }>) : [];
+        return specs.some(
+          (s) =>
+            s.name.toLowerCase() === "capacity" &&
+            s.value.toLowerCase().includes(storageCapacity.toLowerCase()),
         );
       });
     }

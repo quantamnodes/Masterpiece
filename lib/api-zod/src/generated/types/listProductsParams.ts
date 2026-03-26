@@ -15,5 +15,8 @@ export type ListProductsParams = {
   maxPrice?: number;
   inStockOnly?: boolean;
   search?: string;
+  wattage?: string;
+  memorySpeed?: string;
+  storageCapacity?: string;
   sortBy?: ListProductsSortBy;
 };

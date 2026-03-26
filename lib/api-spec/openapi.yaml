@@ -71,6 +71,21 @@ paths:
           required: false
           schema:
             type: string
+        - name: wattage
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: memorySpeed
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: storageCapacity
+          in: query
+          required: false
+          schema:
+            type: string
         - name: sortBy
           in: query
           required: false
@@ -224,6 +239,11 @@ paths:
           required: true
           schema:
             type: integer
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Updated cart
@@ -231,6 +251,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CartResponse"
+        "400":
+          description: sessionId required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Item not found
           content:

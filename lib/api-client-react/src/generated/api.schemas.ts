@@ -107,6 +107,9 @@ export type ListProductsParams = {
   maxPrice?: number;
   inStockOnly?: boolean;
   search?: string;
+  wattage?: string;
+  memorySpeed?: string;
+  storageCapacity?: string;
   sortBy?: ListProductsSortBy;
 };
 
@@ -122,6 +125,10 @@ export const ListProductsSortBy = {
 
 export type GetCartParams = {
   sessionId?: string;
+};
+
+export type RemoveCartItemParams = {
+  sessionId: string;
 };
 
 export type ClearCartParams = {

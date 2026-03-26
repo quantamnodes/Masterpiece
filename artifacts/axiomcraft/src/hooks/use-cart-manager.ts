@@ -1,24 +1,14 @@
 import { useEffect } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCartSession } from '../store/use-cart-session';
 import { 
   useGetCart, 
   useAddToCart, 
   useUpdateCartItem, 
+  useRemoveCartItem,
   useClearCart,
   getGetCartQueryKey,
 } from '@workspace/api-client-react';
-import type { CartResponse } from '@workspace/api-client-react';
-
-async function deleteCartItem(itemId: number, sessionId: string): Promise<CartResponse> {
-  const url = `/api/cart/${itemId}?sessionId=${encodeURIComponent(sessionId)}`;
-  const res = await fetch(url, { method: 'DELETE' });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error((err as { message?: string }).message ?? 'Failed to remove cart item');
-  }
-  return res.json() as Promise<CartResponse>;
-}
 
 export function useCartManager() {
   const queryClient = useQueryClient();
@@ -47,9 +37,8 @@ export function useCartManager() {
     mutation: { onSuccess: invalidateCart }
   });
 
-  const removeMutation = useMutation<CartResponse, Error, { itemId: number; sessionId: string }>({
-    mutationFn: ({ itemId, sessionId: sid }) => deleteCartItem(itemId, sid),
-    onSuccess: invalidateCart,
+  const removeMutation = useRemoveCartItem({
+    mutation: { onSuccess: invalidateCart }
   });
 
   const clearMutation = useClearCart({
@@ -73,7 +62,7 @@ export function useCartManager() {
 
   const removeItem = async (itemId: number) => {
     if (!sessionId) return;
-    await removeMutation.mutateAsync({ itemId, sessionId });
+    await removeMutation.mutateAsync({ itemId, params: { sessionId } });
   };
 
   const clearCart = async () => {

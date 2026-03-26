@@ -27,6 +27,7 @@ import type {
   ListProductsParams,
   Product,
   ProductListResponse,
+  RemoveCartItemParams,
   UpdateCartItemRequest,
 } from "./api.schemas";
 
@@ -721,15 +722,31 @@ export const useUpdateCartItem = <
 /**
  * @summary Remove item from cart
  */
-export const getRemoveCartItemUrl = (itemId: number) => {
-  return `/api/cart/${itemId}`;
+export const getRemoveCartItemUrl = (
+  itemId: number,
+  params: RemoveCartItemParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/cart/${itemId}?${stringifiedParams}`
+    : `/api/cart/${itemId}`;
 };
 
 export const removeCartItem = async (
   itemId: number,
+  params: RemoveCartItemParams,
   options?: RequestInit,
 ): Promise<CartResponse> => {
-  return customFetch<CartResponse>(getRemoveCartItemUrl(itemId), {
+  return customFetch<CartResponse>(getRemoveCartItemUrl(itemId, params), {
     ...options,
     method: "DELETE",
   });
@@ -742,14 +759,14 @@ export const getRemoveCartItemMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof removeCartItem>>,
     TError,
-    { itemId: number },
+    { itemId: number; params: RemoveCartItemParams },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof removeCartItem>>,
   TError,
-  { itemId: number },
+  { itemId: number; params: RemoveCartItemParams },
   TContext
 > => {
   const mutationKey = ["removeCartItem"];
@@ -763,11 +780,11 @@ export const getRemoveCartItemMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof removeCartItem>>,
-    { itemId: number }
+    { itemId: number; params: RemoveCartItemParams }
   > = (props) => {
-    const { itemId } = props ?? {};
+    const { itemId, params } = props ?? {};
 
-    return removeCartItem(itemId, requestOptions);
+    return removeCartItem(itemId, params, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -789,14 +806,14 @@ export const useRemoveCartItem = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof removeCartItem>>,
     TError,
-    { itemId: number },
+    { itemId: number; params: RemoveCartItemParams },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof removeCartItem>>,
   TError,
-  { itemId: number },
+  { itemId: number; params: RemoveCartItemParams },
   TContext
 > => {
   return useMutation(getRemoveCartItemMutationOptions(options));

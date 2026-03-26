@@ -22,4 +22,5 @@ export * from "./productListResponse";
 export * from "./productSpec";
 export * from "./productVariant";
 export * from "./productVariantAttributes";
+export * from "./removeCartItemParams";
 export * from "./updateCartItemRequest";

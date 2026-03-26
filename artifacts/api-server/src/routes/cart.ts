@@ -191,7 +191,7 @@ router.patch("/cart/:itemId", async (req, res) => {
     const itemId = parseInt(req.params["itemId"] ?? "0");
     const { quantity, sessionId } = req.body;
 
-    if (isNaN(itemId) || !quantity || quantity < 0) {
+    if (isNaN(itemId) || quantity === undefined || quantity === null || quantity < 0) {
       res.status(400).json({ error: "bad_request", message: "Valid quantity required" });
       return;
     }
