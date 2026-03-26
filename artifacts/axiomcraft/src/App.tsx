@@ -2,8 +2,9 @@ import { Routes, Route, BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUserStore } from "@/store/user-store";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -55,9 +56,19 @@ function AppRoutes() {
 }
 
 function App() {
+  const [loading, setLoading] = useState(() => {
+    return !sessionStorage.getItem("axiomcraft_loaded");
+  });
+
+  const handleLoadComplete = () => {
+    sessionStorage.setItem("axiomcraft_loaded", "1");
+    setLoading(false);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        {loading && <LoadingScreen onComplete={handleLoadComplete} />}
         <BrowserRouter basename={base}>
           <AuthInit />
           <AppRoutes />
