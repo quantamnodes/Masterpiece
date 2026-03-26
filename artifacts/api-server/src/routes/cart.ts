@@ -196,9 +196,12 @@ router.patch("/cart/:itemId", async (req, res) => {
       return;
     }
 
-    const whereClause = sessionId
-      ? and(eq(cartItemsTable.id, itemId), eq(cartItemsTable.sessionId, sessionId))
-      : eq(cartItemsTable.id, itemId);
+    if (!sessionId) {
+      res.status(400).json({ error: "bad_request", message: "sessionId is required" });
+      return;
+    }
+
+    const whereClause = and(eq(cartItemsTable.id, itemId), eq(cartItemsTable.sessionId, sessionId));
 
     const items = await db
       .select()
@@ -245,16 +248,19 @@ router.delete("/cart/clear", async (req, res) => {
 router.delete("/cart/:itemId", async (req, res) => {
   try {
     const itemId = parseInt(req.params["itemId"] ?? "0");
-    const sessionId = req.query["sessionId"] as string | undefined;
+    const sessionId = (req.query["sessionId"] as string | undefined) || (req.body?.sessionId as string | undefined);
 
     if (isNaN(itemId)) {
       res.status(400).json({ error: "bad_request", message: "Invalid item ID" });
       return;
     }
 
-    const whereClause = sessionId
-      ? and(eq(cartItemsTable.id, itemId), eq(cartItemsTable.sessionId, sessionId))
-      : eq(cartItemsTable.id, itemId);
+    if (!sessionId) {
+      res.status(400).json({ error: "bad_request", message: "sessionId is required" });
+      return;
+    }
+
+    const whereClause = and(eq(cartItemsTable.id, itemId), eq(cartItemsTable.sessionId, sessionId));
 
     const items = await db
       .select()

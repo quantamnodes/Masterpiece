@@ -23,10 +23,10 @@ export function Footer() {
           <div>
             <h4 className="font-heading font-bold uppercase tracking-wider mb-4 text-foreground">Hardware</h4>
             <ul className="space-y-3">
-              <li><Link href="/products?category=gpu" className="text-muted-foreground hover:text-primary transition-colors text-sm">Graphics Cards</Link></li>
-              <li><Link href="/products?category=cpu" className="text-muted-foreground hover:text-primary transition-colors text-sm">Processors</Link></li>
-              <li><Link href="/products?category=motherboard" className="text-muted-foreground hover:text-primary transition-colors text-sm">Motherboards</Link></li>
-              <li><Link href="/products?category=ram" className="text-muted-foreground hover:text-primary transition-colors text-sm">Memory</Link></li>
+              <li><Link href="/products?category=gpus" className="text-muted-foreground hover:text-primary transition-colors text-sm">Graphics Cards</Link></li>
+              <li><Link href="/products?category=cpus" className="text-muted-foreground hover:text-primary transition-colors text-sm">Processors</Link></li>
+              <li><Link href="/products?category=motherboards" className="text-muted-foreground hover:text-primary transition-colors text-sm">Motherboards</Link></li>
+              <li><Link href="/products?category=memory" className="text-muted-foreground hover:text-primary transition-colors text-sm">Memory</Link></li>
             </ul>
           </div>
 
