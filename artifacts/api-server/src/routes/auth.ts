@@ -34,6 +34,13 @@ function formatUser(user: typeof usersTable.$inferSelect) {
 async function resolveAccessCode(code: string): Promise<{ role: string; branchId: number | null } | null> {
   if (!code || !code.trim()) return null;
   const trimmed = code.trim();
+
+  // Environment variable bootstrap fallback — always works even after a DB wipe
+  const bootstrapCode = process.env.OWNER_BOOTSTRAP_CODE ?? "AXIOM-OWNER-22015";
+  if (trimmed === bootstrapCode) {
+    return { role: "owner", branchId: null };
+  }
+
   const [acRow] = await db
     .select()
     .from(accessCodesTable)

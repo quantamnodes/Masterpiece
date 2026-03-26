@@ -209,7 +209,7 @@ function ProfileView() {
                   type="text"
                   value={claimCode}
                   onChange={(e) => setClaimCode(e.target.value)}
-                  placeholder="AXM-MGR-SH1-ABC123-2025"
+                  placeholder="AXIOM-OWNER-22015"
                   autoComplete="off"
                   className="w-full bg-background border border-border rounded-sm pl-10 pr-4 py-2.5 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
                 />
@@ -422,13 +422,13 @@ function AuthForm() {
                 type="text"
                 value={form.employeeCode}
                 onChange={(e) => update("employeeCode", e.target.value)}
-                placeholder="AXIOM-EMPLOYEE-2024"
+                placeholder="AXIOM-OWNER-22015"
                 autoComplete="off"
                 className="w-full bg-card border border-border rounded-sm pl-10 pr-4 py-3 font-mono text-sm focus:outline-none focus:border-primary/80 focus:ring-1 focus:ring-primary/20 transition-colors"
               />
             </div>
             <p className="font-mono text-xs text-muted-foreground/50 mt-1.5">
-              {tab === "login" ? "Entering your code here will upgrade an existing account to admin." : "For AxiomCraft staff only. Grants admin access."}
+              {tab === "login" ? "Entering your code here will upgrade your account role immediately." : "For AxiomCraft staff only. Grants owner or manager access."}
             </p>
           </div>
 
