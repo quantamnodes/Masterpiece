@@ -61,7 +61,32 @@ function TierProgress({ tier, totalSpent }: { tier: Tier; totalSpent: number }) 
 }
 
 function ProfileView() {
-  const { user, logout } = useUserStore();
+  const { user, logout, setUser } = useUserStore();
+  const [claimCode, setClaimCode] = useState("");
+  const [claimError, setClaimError] = useState("");
+  const [claimSuccess, setClaimSuccess] = useState(false);
+  const [claimLoading, setClaimLoading] = useState(false);
+
+  const handleClaimAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setClaimError("");
+    setClaimLoading(true);
+    try {
+      const updated = await apiFetch("/auth/claim-admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ employeeCode: claimCode.trim() }),
+      });
+      setUser(updated);
+      setClaimSuccess(true);
+      setClaimCode("");
+    } catch (err: unknown) {
+      setClaimError(err instanceof Error ? err.message : "Invalid code.");
+    } finally {
+      setClaimLoading(false);
+    }
+  };
+
   if (!user) return null;
   const cfg = TIER_CONFIG[user.tier as Tier];
 
@@ -156,6 +181,80 @@ function ProfileView() {
         </motion.div>
       )}
 
+      {/* Claim Admin Access (shown only if not already admin) */}
+      {user.role !== "admin" && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="border border-border bg-card rounded-sm p-6"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            <h3 className="font-heading font-bold uppercase text-sm">Claim Admin Access</h3>
+          </div>
+          <p className="font-mono text-xs text-muted-foreground mb-4">
+            AxiomCraft staff can enter their employee code below to unlock the admin Dashboard without creating a new account.
+          </p>
+          {claimSuccess ? (
+            <div className="flex items-center gap-2 px-4 py-3 border border-primary/40 bg-primary/10 rounded-sm">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+              <span className="font-mono text-sm text-primary">Admin access granted — Dashboard link now visible in the navbar.</span>
+            </div>
+          ) : (
+            <form onSubmit={handleClaimAdmin} className="flex gap-3">
+              <div className="relative flex-1">
+                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  value={claimCode}
+                  onChange={(e) => setClaimCode(e.target.value)}
+                  placeholder="AXIOM-EMPLOYEE-2024"
+                  autoComplete="off"
+                  className="w-full bg-background border border-border rounded-sm pl-10 pr-4 py-2.5 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={claimLoading || !claimCode.trim()}
+                className="px-5 py-2.5 bg-primary text-primary-foreground font-mono text-xs uppercase tracking-widest rounded-sm hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0"
+              >
+                {claimLoading ? "..." : "Claim"}
+              </button>
+            </form>
+          )}
+          {claimError && (
+            <p className="font-mono text-xs text-destructive mt-2">{claimError}</p>
+          )}
+        </motion.div>
+      )}
+
+      {/* Admin dashboard shortcut */}
+      {user.role === "admin" && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="border border-primary/50 bg-primary/5 rounded-sm p-6 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <ShieldCheck className="w-8 h-8 text-primary" />
+            <div>
+              <h4 className="font-heading font-bold uppercase text-primary">Admin Access Active</h4>
+              <p className="font-mono text-xs text-muted-foreground">Manage products, prices, and inventory from the dashboard.</p>
+            </div>
+          </div>
+          <Link to="/dashboard">
+            <motion.button
+              whileHover={{ x: 4 }}
+              className="flex items-center gap-2 font-mono text-sm text-primary uppercase"
+            >
+              Open <ChevronRight className="w-4 h-4" />
+            </motion.button>
+          </Link>
+        </motion.div>
+      )}
+
       {/* Actions */}
       <div className="flex justify-end">
         <button
@@ -190,8 +289,8 @@ function AuthForm() {
     try {
       const path = tab === "login" ? "/auth/login" : "/auth/register";
       const body = tab === "login"
-        ? { email: form.email, password: form.password }
-        : { username: form.username, email: form.email, password: form.password, employeeCode: form.employeeCode || undefined };
+        ? { email: form.email, password: form.password, ...(form.employeeCode.trim() ? { employeeCode: form.employeeCode.trim() } : {}) }
+        : { username: form.username, email: form.email, password: form.password, ...(form.employeeCode.trim() ? { employeeCode: form.employeeCode.trim() } : {}) };
       const user = await apiFetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -293,24 +392,25 @@ function AuthForm() {
             </div>
           )}
 
-          {tab === "signup" && (
-            <div>
-              <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
-                Employee Access Code <span className="normal-case tracking-normal text-muted-foreground/50">optional</span>
-              </label>
-              <div className="relative">
-                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={form.employeeCode}
-                  onChange={(e) => update("employeeCode", e.target.value)}
-                  placeholder="AXIOM-XXXX-XXXX"
-                  className="w-full bg-card border border-border rounded-sm pl-10 pr-4 py-3 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
-                />
-              </div>
-              <p className="font-mono text-xs text-muted-foreground/50 mt-1.5">For AxiomCraft staff only. Grants admin access.</p>
+          <div>
+            <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Employee Access Code <span className="normal-case tracking-normal text-muted-foreground/50">optional</span>
+            </label>
+            <div className="relative">
+              <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={form.employeeCode}
+                onChange={(e) => update("employeeCode", e.target.value)}
+                placeholder="AXIOM-EMPLOYEE-2024"
+                autoComplete="off"
+                className="w-full bg-card border border-border rounded-sm pl-10 pr-4 py-3 font-mono text-sm focus:outline-none focus:border-primary/80 focus:ring-1 focus:ring-primary/20 transition-colors"
+              />
             </div>
-          )}
+            <p className="font-mono text-xs text-muted-foreground/50 mt-1.5">
+              {tab === "login" ? "Entering your code here will upgrade an existing account to admin." : "For AxiomCraft staff only. Grants admin access."}
+            </p>
+          </div>
 
           {error && (
             <motion.p

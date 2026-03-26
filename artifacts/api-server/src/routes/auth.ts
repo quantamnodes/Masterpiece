@@ -48,7 +48,7 @@ router.post("/auth/register", async (req, res) => {
       return res.status(409).json({ error: "Email already registered" });
     }
     const passwordHash = await bcrypt.hash(password, 10);
-    const role = employeeCode === EMPLOYEE_CODE ? "admin" : "user";
+    const role = (typeof employeeCode === "string" && employeeCode.trim() === EMPLOYEE_CODE) ? "admin" : "user";
     const [user] = await db
       .insert(usersTable)
       .values({ username, email, passwordHash, role, tier: "bronze", totalSpent: "0", purchaseCount: 0 })
@@ -63,7 +63,7 @@ router.post("/auth/register", async (req, res) => {
 // POST /auth/login
 router.post("/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, employeeCode } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: "email and password are required" });
     }
@@ -79,10 +79,36 @@ router.post("/auth/login", async (req, res) => {
     if (!valid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
+    // If the correct employee code is provided at login, upgrade role to admin
+    if (typeof employeeCode === "string" && employeeCode.trim() === EMPLOYEE_CODE && user.role !== "admin") {
+      await db.update(usersTable).set({ role: "admin" }).where(eq(usersTable.id, user.id));
+      user.role = "admin";
+    }
     req.session.userId = user.id;
     return res.json(formatUser(user));
   } catch {
     return res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// POST /auth/claim-admin — allows a logged-in user to upgrade their role
+router.post("/auth/claim-admin", async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  try {
+    const { employeeCode } = req.body;
+    if (!employeeCode || typeof employeeCode !== "string" || employeeCode.trim() !== EMPLOYEE_CODE) {
+      return res.status(403).json({ error: "Invalid employee code" });
+    }
+    const [updated] = await db
+      .update(usersTable)
+      .set({ role: "admin" })
+      .where(eq(usersTable.id, req.session.userId))
+      .returning();
+    return res.json(formatUser(updated));
+  } catch {
+    return res.status(500).json({ error: "Failed to claim admin access" });
   }
 });
 
