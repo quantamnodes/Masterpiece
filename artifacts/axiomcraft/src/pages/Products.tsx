@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
@@ -9,6 +9,13 @@ import { motion, AnimatePresence } from "framer-motion";
 type SortOption = "newest" | "price_asc" | "price_desc" | "name_asc";
 
 const SORT_OPTIONS: SortOption[] = ["newest", "price_asc", "price_desc", "name_asc"];
+
+const SORT_LABELS: Record<SortOption, string> = {
+  newest: "Newest First",
+  price_asc: "Price: Low → High",
+  price_desc: "Price: High → Low",
+  name_asc: "Name: A → Z",
+};
 
 function isSortOption(value: string): value is SortOption {
   return (SORT_OPTIONS as string[]).includes(value);
@@ -78,6 +85,8 @@ export default function Products() {
   const [category, setCategory] = useState<string | undefined>(initialCategory);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
   const [selectedSockets, setSelectedSockets] = useState<string[]>([]);
   const [selectedFormFactors, setSelectedFormFactors] = useState<string[]>([]);
   const [selectedWattages, setSelectedWattages] = useState<string[]>([]);
@@ -89,6 +98,16 @@ export default function Products() {
     const params = new URLSearchParams(location.search);
     setCategory(params.get("category") || undefined);
   }, [location.search]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
+        setSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const { data: categoriesData } = useListCategories();
 
@@ -326,20 +345,40 @@ export default function Products() {
               )}
             </button>
 
-            <div className="flex items-center gap-2 border border-border bg-card rounded-sm px-3 py-2">
-              <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
-              <select
-                value={sortBy}
-                onChange={(e) => {
-                  if (isSortOption(e.target.value)) setSortBy(e.target.value);
-                }}
-                className="bg-transparent text-sm font-mono uppercase text-foreground focus:outline-none cursor-pointer appearance-none pr-4"
+            <div ref={sortRef} className="relative">
+              <button
+                onClick={() => setSortOpen((o) => !o)}
+                className="flex items-center gap-2 border border-border bg-card rounded-sm px-3 py-2 font-mono text-sm uppercase text-foreground hover:border-primary/50 transition-colors"
               >
-                <option value="newest">Newest First</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="name_asc">Name: A to Z</option>
-              </select>
+                <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+                <span>{SORT_LABELS[sortBy]}</span>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${sortOpen ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence>
+                {sortOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-full mt-1 z-50 min-w-[180px] bg-card border border-border rounded-sm shadow-lg overflow-hidden"
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => { setSortBy(opt); setSortOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 font-mono text-sm uppercase transition-colors ${
+                          sortBy === opt
+                            ? "bg-primary/10 text-primary"
+                            : "text-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        {SORT_LABELS[opt]}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
