@@ -168,10 +168,12 @@
 }
 
 .marquee-ltr {
+  width: max-content;
   animation: marquee-ltr var(--marquee-speed, 40s) linear infinite;
 }
 
 .marquee-rtl {
+  width: max-content;
   animation: marquee-rtl var(--marquee-speed, 40s) linear infinite;
 }
 
