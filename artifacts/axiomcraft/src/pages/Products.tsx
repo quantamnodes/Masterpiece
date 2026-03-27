@@ -127,17 +127,19 @@ export default function Products() {
   const [mobileFiltersOpen,       setMobileFiltersOpen]       = useState(false);
 
   /*
-   * Price range — two-tier state to fix the "fires on first character" bug:
-   *   priceMinDraft / priceMaxDraft  ← what the user sees while typing (instant)
-   *   priceMin / priceMax            ← debounced copy used for actual filtering
+   * Price range — two-tier state so the filter never fires mid-type:
+   *   priceMinDraft / priceMaxDraft  ← bound to input value (live)
+   *   priceMin / priceMax            ← committed only on blur or Enter
    *
-   * The 400 ms debounce means the user can type "1", "15", "150" etc. without
-   * triggering a new filter pass until they pause.
+   * commitPriceMin/Max() copy draft → committed, which triggers filtering.
    */
   const [priceMinDraft, setPriceMinDraft] = useState<string>("");
   const [priceMaxDraft, setPriceMaxDraft] = useState<string>("");
-  const priceMin = useDebounced(priceMinDraft, 400);
-  const priceMax = useDebounced(priceMaxDraft, 400);
+  const [priceMin,      setPriceMin]      = useState<string>("");
+  const [priceMax,      setPriceMax]      = useState<string>("");
+
+  const commitPriceMin = () => setPriceMin(priceMinDraft);
+  const commitPriceMax = () => setPriceMax(priceMaxDraft);
 
   /* ── Dynamic filter options (fetched from API) ── */
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -274,6 +276,8 @@ export default function Products() {
     setSelectedStorageCapacities([]);
     setPriceMinDraft("");
     setPriceMaxDraft("");
+    setPriceMin("");
+    setPriceMax("");
     window.history.pushState({}, "", "/products");
   };
 
@@ -372,6 +376,8 @@ export default function Products() {
                 min={0}
                 value={priceMinDraft}
                 onChange={(e) => setPriceMinDraft(e.target.value)}
+                onBlur={commitPriceMin}
+                onKeyDown={(e) => e.key === "Enter" && commitPriceMin()}
                 placeholder="0"
                 className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
               />
@@ -384,6 +390,8 @@ export default function Products() {
                 min={0}
                 value={priceMaxDraft}
                 onChange={(e) => setPriceMaxDraft(e.target.value)}
+                onBlur={commitPriceMax}
+                onKeyDown={(e) => e.key === "Enter" && commitPriceMax()}
                 placeholder="∞"
                 className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
               />
@@ -391,7 +399,7 @@ export default function Products() {
           </div>
           {(priceMinDraft || priceMaxDraft) && (
             <button
-              onClick={() => { setPriceMinDraft(""); setPriceMaxDraft(""); }}
+              onClick={() => { setPriceMinDraft(""); setPriceMaxDraft(""); setPriceMin(""); setPriceMax(""); }}
               className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               Clear range
