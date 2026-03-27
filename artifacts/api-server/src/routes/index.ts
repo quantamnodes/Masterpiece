@@ -19,6 +19,7 @@ import localizationRouter from "./localization";
 import checkoutRouter from "./checkout";
 import webhookRouter from "./webhook";
 import contactRouter from "./contact";
+import customerBenefitsRouter from "./customer-benefits";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use(localizationRouter);
 router.use(checkoutRouter);
 router.use(webhookRouter);
 router.use(contactRouter);
+router.use(customerBenefitsRouter);
 
 export default router;

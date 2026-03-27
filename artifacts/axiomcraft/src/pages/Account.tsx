@@ -29,9 +29,22 @@ function TierBadge({ tier }: { tier: Tier }) {
   );
 }
 
-function TierProgress({ tier, totalSpent }: { tier: Tier; totalSpent: number }) {
-  const cfg = TIER_CONFIG[tier];
-  if (!cfg.next) {
+function TierProgress({
+  tier,
+  totalSpent,
+  thresholds,
+}: {
+  tier: Tier;
+  totalSpent: number;
+  thresholds?: { bronzeNext: number; silverNext: number; goldNext: number };
+}) {
+  const bronzeNext  = thresholds?.bronzeNext  ?? 500;
+  const silverNext  = thresholds?.silverNext  ?? 2000;
+  const goldNext    = thresholds?.goldNext    ?? 10000;
+  const dynamicTiers = [0, bronzeNext, silverNext, goldNext];
+  const tierIndex = ["bronze", "silver", "gold", "platinum"].indexOf(tier);
+
+  if (tier === "platinum") {
     return (
       <div className="mt-4">
         <p className="font-mono text-xs text-primary mb-2">MAX TIER — PLATINUM OPERATOR</p>
@@ -39,15 +52,14 @@ function TierProgress({ tier, totalSpent }: { tier: Tier; totalSpent: number }) 
       </div>
     );
   }
-  const tiers = [0, 500, 2000, 10000];
-  const tierIndex = ["bronze", "silver", "gold", "platinum"].indexOf(tier);
-  const start = tiers[tierIndex];
-  const progress = Math.min(((totalSpent - start) / (cfg.next - start)) * 100, 100);
+  const nextThreshold = dynamicTiers[tierIndex + 1];
+  const start = dynamicTiers[tierIndex];
+  const progress = Math.min(((totalSpent - start) / (nextThreshold - start)) * 100, 100);
   return (
     <div className="mt-4">
       <div className="flex justify-between font-mono text-xs text-muted-foreground mb-2">
         <span>${totalSpent.toLocaleString()} spent</span>
-        <span>${cfg.next.toLocaleString()} for next tier</span>
+        <span>${nextThreshold.toLocaleString()} for next tier</span>
       </div>
       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
         <motion.div
@@ -108,6 +120,24 @@ function ProfileView() {
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [reservations, setReservations] = useState<ReservationRecord[]>([]);
   const [reservationsLoading, setReservationsLoading] = useState(false);
+
+  const [benefitsSettings, setBenefitsSettings] = useState<{
+    tierBenefitsVisible: boolean;
+    bronzeDiscount: number;
+    silverDiscount: number;
+    goldDiscount: number;
+    platinumDiscount: number;
+    bronzeNext: number;
+    silverNext: number;
+    goldNext: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/customer-benefits`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setBenefitsSettings(data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -185,7 +215,11 @@ function ProfileView() {
             <div className="text-xs font-mono uppercase text-muted-foreground">Total Spent</div>
           </div>
           <div className="text-center">
-            <div className={`text-2xl font-mono font-bold ${cfg.color}`}>{cfg.discount}%</div>
+            <div className={`text-2xl font-mono font-bold ${cfg.color}`}>
+              {benefitsSettings
+                ? (benefitsSettings as Record<string, unknown>)[`${user.tier as string}Discount`] as number
+                : cfg.discount}%
+            </div>
             <div className="text-xs font-mono uppercase text-muted-foreground">Tier Discount</div>
           </div>
           <div className="text-center">
@@ -194,33 +228,50 @@ function ProfileView() {
           </div>
         </div>
 
-        <TierProgress tier={user.tier as Tier} totalSpent={user.totalSpent} />
+        <TierProgress
+          tier={user.tier as Tier}
+          totalSpent={user.totalSpent}
+          thresholds={benefitsSettings ? {
+            bronzeNext: benefitsSettings.bronzeNext,
+            silverNext: benefitsSettings.silverNext,
+            goldNext:   benefitsSettings.goldNext,
+          } : undefined}
+        />
       </motion.div>
 
-      {/* Tier benefits */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="border border-border bg-card rounded-sm p-8"
-      >
-        <h3 className="text-xl font-heading font-bold uppercase mb-6">Operator Tier Benefits</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {(["bronze", "silver", "gold", "platinum"] as Tier[]).map((t) => {
-            const c = TIER_CONFIG[t];
-            const active = t === user.tier;
-            return (
-              <div key={t} className={`p-4 border rounded-sm ${active ? `${c.bg} border-opacity-100` : "border-border opacity-50"}`}>
-                <div className={`font-heading font-bold uppercase text-sm mb-2 ${c.color}`}>{c.label}</div>
-                <div className="font-mono text-xs text-muted-foreground mb-1">{c.discount}% discount</div>
-                <div className="font-mono text-xs text-muted-foreground">
-                  {c.next ? `$${c.next.toLocaleString()} threshold` : "Platinum exclusive"}
+      {/* Tier benefits — conditionally shown based on owner settings */}
+      {(!benefitsSettings || benefitsSettings.tierBenefitsVisible) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="border border-border bg-card rounded-sm p-8"
+        >
+          <h3 className="text-xl font-heading font-bold uppercase mb-6">Operator Tier Benefits</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {(["bronze", "silver", "gold", "platinum"] as Tier[]).map((t) => {
+              const c = TIER_CONFIG[t];
+              const active = t === user.tier;
+              const dynamicDiscount = benefitsSettings
+                ? (benefitsSettings as Record<string, unknown>)[`${t}Discount`] as number
+                : c.discount;
+              const nextMap: Record<string, number | null> = benefitsSettings
+                ? { bronze: benefitsSettings.bronzeNext, silver: benefitsSettings.silverNext, gold: benefitsSettings.goldNext, platinum: null }
+                : { bronze: c.next, silver: c.next, gold: c.next, platinum: null };
+              const dynNext = nextMap[t] ?? null;
+              return (
+                <div key={t} className={`p-4 border rounded-sm ${active ? `${c.bg} border-opacity-100` : "border-border opacity-50"}`}>
+                  <div className={`font-heading font-bold uppercase text-sm mb-2 ${c.color}`}>{c.label}</div>
+                  <div className="font-mono text-xs text-muted-foreground mb-1">{dynamicDiscount}% discount</div>
+                  <div className="font-mono text-xs text-muted-foreground">
+                    {dynNext ? `$${dynNext.toLocaleString()} threshold` : "Platinum exclusive"}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
 
       {/* Order History */}
       <motion.div

@@ -393,7 +393,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock" | "categories" | "contact">("overview");
+  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock" | "categories" | "contact" | "benefits">("overview");
 
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
@@ -445,6 +445,20 @@ export default function Dashboard() {
   }>>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<number | null>(null);
+
+  // Customer benefits state
+  const [benefitsLoading, setBenefitsLoading] = useState(false);
+  const [benefitsSaving, setBenefitsSaving] = useState(false);
+  const [benefitsForm, setBenefitsForm] = useState({
+    tierBenefitsVisible: true,
+    bronzeDiscount: 0,
+    silverDiscount: 3,
+    goldDiscount: 7,
+    platinumDiscount: 15,
+    bronzeNext: 500,
+    silverNext: 2000,
+    goldNext: 10000,
+  });
 
   // Sales data state
   const [salesData, setSalesData] = useState<{
@@ -597,6 +611,54 @@ export default function Dashboard() {
       fetchContactMessages();
     }
   }, [tab, fetchContactSettings, fetchContactMessages]);
+
+  const fetchBenefits = useCallback(async () => {
+    setBenefitsLoading(true);
+    try {
+      const res = await fetch(`${API}/customer-benefits`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setBenefitsForm({
+          tierBenefitsVisible: data.tierBenefitsVisible ?? true,
+          bronzeDiscount:   data.bronzeDiscount   ?? 0,
+          silverDiscount:   data.silverDiscount   ?? 3,
+          goldDiscount:     data.goldDiscount     ?? 7,
+          platinumDiscount: data.platinumDiscount ?? 15,
+          bronzeNext:       data.bronzeNext       ?? 500,
+          silverNext:       data.silverNext       ?? 2000,
+          goldNext:         data.goldNext         ?? 10000,
+        });
+      }
+    } finally {
+      setBenefitsLoading(false);
+    }
+  }, []);
+
+  const handleBenefitsSave = async () => {
+    setBenefitsSaving(true);
+    try {
+      const res = await fetch(`${API}/customer-benefits`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(benefitsForm),
+      });
+      if (res.ok) {
+        toast({ title: "Customer benefits saved", description: "Changes are now live for all users." });
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: j.error || "Failed to save", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    } finally {
+      setBenefitsSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === "benefits") fetchBenefits();
+  }, [tab, fetchBenefits]);
 
   const handleContactSave = async () => {
     setContactSaving(true);
@@ -895,6 +957,7 @@ export default function Dashboard() {
             { id: "stock", label: "Branch Stock", icon: SlidersHorizontal },
             { id: "categories", label: "Categories", icon: Layers },
             { id: "contact",    label: "Contact",    icon: MessageSquare },
+            { id: "benefits",   label: "Benefits",   icon: Star },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1894,6 +1957,99 @@ export default function Dashboard() {
               </>
             )}
           </div>
+        )}
+
+        {/* ===================== BENEFITS TAB ===================== */}
+        {tab === "benefits" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-heading font-bold text-xl uppercase tracking-wide flex items-center gap-2">
+                  <Star className="w-5 h-5 text-primary" /> Customer Benefits
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1 font-mono">Control loyalty tier visibility and discount/threshold values.</p>
+              </div>
+              <button
+                onClick={handleBenefitsSave}
+                disabled={benefitsSaving}
+                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-mono text-sm uppercase font-bold rounded-sm hover:bg-primary/90 transition-all disabled:opacity-50"
+              >
+                {benefitsSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Changes
+              </button>
+            </div>
+
+            {benefitsLoading ? (
+              <div className="flex items-center justify-center h-40 text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Visibility toggle */}
+                <div className="bg-card border border-border rounded-sm p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono font-bold uppercase tracking-wide text-sm">Operator Tier Benefits section</p>
+                      <p className="text-muted-foreground text-xs mt-1">When hidden, the Tier Benefits block will not appear on the Account page for any customer.</p>
+                    </div>
+                    <button
+                      onClick={() => setBenefitsForm((f) => ({ ...f, tierBenefitsVisible: !f.tierBenefitsVisible }))}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-sm font-mono text-xs uppercase font-bold border transition-all ${benefitsForm.tierBenefitsVisible ? "bg-primary/10 border-primary text-primary" : "bg-muted border-border text-muted-foreground"}`}
+                    >
+                      {benefitsForm.tierBenefitsVisible ? <><Eye className="w-4 h-4" /> Visible</> : <><EyeOff className="w-4 h-4" /> Hidden</>}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tier cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {([
+                    { key: "bronze",   label: "Bronze",   color: "#CD7F32", discountKey: "bronzeDiscount",   nextKey: "bronzeNext",   hasNext: true  },
+                    { key: "silver",   label: "Silver",   color: "#C0C0C0", discountKey: "silverDiscount",   nextKey: "silverNext",   hasNext: true  },
+                    { key: "gold",     label: "Gold",     color: "#FFD700", discountKey: "goldDiscount",     nextKey: "goldNext",     hasNext: true  },
+                    { key: "platinum", label: "Platinum", color: "#00F0FF", discountKey: "platinumDiscount", nextKey: null,           hasNext: false },
+                  ] as const).map(({ key, label, color, discountKey, nextKey, hasNext }) => (
+                    <div key={key} className="bg-card border border-border rounded-sm p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                        <span className="font-mono font-bold uppercase tracking-widest text-sm">{label}</span>
+                      </div>
+                      <div className={`grid gap-4 ${hasNext ? "grid-cols-2" : "grid-cols-1"}`}>
+                        <div>
+                          <label className="block font-mono text-xs text-muted-foreground uppercase tracking-wide mb-1">Discount %</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={99}
+                            value={benefitsForm[discountKey]}
+                            onChange={(e) => setBenefitsForm((f) => ({ ...f, [discountKey]: Number(e.target.value) }))}
+                            className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                        {hasNext && nextKey && (
+                          <div>
+                            <label className="block font-mono text-xs text-muted-foreground uppercase tracking-wide mb-1">Spend to upgrade ($)</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={benefitsForm[nextKey]}
+                              onChange={(e) => setBenefitsForm((f) => ({ ...f, [nextKey]: Number(e.target.value) }))}
+                              className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary"
+                            />
+                          </div>
+                        )}
+                        {!hasNext && (
+                          <div className="flex items-end pb-2">
+                            <p className="font-mono text-xs text-muted-foreground italic">Max tier — no spend threshold.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
         )}
 
       </div>
