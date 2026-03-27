@@ -16,6 +16,8 @@ import reservationsRouter from "./reservations";
 import reviewVotesRouter from "./review-votes";
 import orderTrackingRouter from "./order-tracking";
 import localizationRouter from "./localization";
+import checkoutRouter from "./checkout";
+import webhookRouter from "./webhook";
 
 const router: IRouter = Router();
 
@@ -36,5 +38,7 @@ router.use(reservationsRouter);
 router.use(reviewVotesRouter);
 router.use(orderTrackingRouter);
 router.use(localizationRouter);
+router.use(checkoutRouter);
+router.use(webhookRouter);
 
 export default router;

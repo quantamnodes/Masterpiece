@@ -188,6 +188,43 @@ AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always d
 **After DB schema changes:** rebuild declarations: `cd lib/db && pnpm exec tsc -p tsconfig.json`
 **Seed:** `pnpm --filter @workspace/scripts run seed` — populates 6 categories, 20 hardware products
 
+### Universal Switchboard (Provider-Agnostic Payments + DB)
+
+Located in `artifacts/api-server/src/services/`.
+
+**Architecture:** Factory/Strategy pattern. Set environment variables in `.env` (see `.env.example`) to select the active provider at runtime. No route code changes needed to switch providers.
+
+**DB Service Layer** (`services/db/`):
+- `dbService.ts` — exports `getDbAdapter()` based on `ACTIVE_DATABASE` env var (singleton, lazy-loaded)
+- `postgresAdapter.ts` — uses existing Drizzle ORM + `@workspace/db` connection
+- `supabaseAdapter.ts` — uses Supabase REST API
+- `mongoAdapter.ts` — uses MongoDB Atlas Data API
+- `firebaseAdapter.ts` — uses Firestore REST API
+
+Every adapter implements:
+- `saveTransactionIntent(userEmail, amount)` — saves pending intent before payment
+- `grantUserAccess(userEmail, transactionId)` — marks intent completed + upgrades user
+
+**Payment Service Layer** (`services/payment/`):
+- `paymentService.ts` — exports `getPaymentAdapter()` based on `ACTIVE_PAYMENT` env var (singleton, lazy-loaded)
+- `stripeAdapter.ts` — Stripe Checkout Sessions + webhook HMAC-SHA256 verification
+- `amarpayAdapter.ts` — AmarPay POST redirect + IPN callback
+- `lemonAdapter.ts` — LemonSqueezy checkouts + HMAC-SHA256 webhook
+- `paypalAdapter.ts` — PayPal Orders v2 + event-type verification
+- `sslcommerzAdapter.ts` — SSLCommerz gateway + IPN validation API
+
+Every adapter implements:
+- `createCheckoutSession(amount, currency, userEmail)` → `{ checkoutUrl }`
+- `verifyWebhook(rawBody, signatureHeader)` → `{ status, transactionId, userEmail }`
+
+**API Routes:**
+- `POST /api/checkout` — saves intent via DB adapter, creates checkout via payment adapter, returns `{ checkoutUrl }`
+- `POST /api/webhook` — verifies provider signature, grants user access on success; detects signature header automatically from all providers
+
+**DB Table:** `payment_intents` (id, user_email, amount, status, transaction_id, provider, created_at, updated_at) — managed via Drizzle schema in `lib/db/src/schema/switchboard.ts`
+
+**`.env.example`** at project root — full template with all provider credentials documented.
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
