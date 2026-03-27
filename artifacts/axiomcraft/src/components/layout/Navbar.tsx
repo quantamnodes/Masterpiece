@@ -64,6 +64,16 @@ function DropdownMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openMenu = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setIsOpen(true);
+  };
+
+  const scheduleClose = () => {
+    closeTimer.current = setTimeout(() => setIsOpen(false), 180);
+  };
 
   /* Close when clicking outside this component */
   useEffect(() => {
@@ -76,13 +86,18 @@ function DropdownMenu({
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  /* Cleanup timer on unmount */
+  useEffect(() => {
+    return () => { if (closeTimer.current) clearTimeout(closeTimer.current); };
+  }, []);
+
   return (
     /* ===== Dropdown Menu Start ===== */
     <div ref={containerRef} className="relative">
       {/* ── Dropdown Trigger Button ── */}
       <button
-        onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}
+        onMouseEnter={openMenu}
+        onMouseLeave={scheduleClose}
         onClick={() => setIsOpen((prev) => !prev)}
         className="navbar-dropdown-trigger"
       >
@@ -101,8 +116,8 @@ function DropdownMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={  { opacity: 0, y: 8, scale: 0.97 }}
             transition={{ duration: 0.18 }}
-            onMouseEnter={() => setIsOpen(true)}
-            onMouseLeave={() => setIsOpen(false)}
+            onMouseEnter={openMenu}
+            onMouseLeave={scheduleClose}
             className="navbar-dropdown-panel"
           >
             {children}
