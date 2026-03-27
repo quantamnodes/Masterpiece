@@ -449,17 +449,16 @@ export default function Home() {
 
       {/* ─── MANIFESTO STRIP ─────────────────────────────────────────── */}
       <section className="py-16 border-y border-border overflow-hidden">
-        <motion.div
-          animate={{ x: ["0%", "-50%"] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="flex gap-12 whitespace-nowrap"
-        >
-          {Array(4).fill(["ZERO BOTTLENECKS", "ABSOLUTE POWER", "ENGINEERED PRECISION", "MAXIMUM THROUGHPUT", "RENDER AT LIGHT SPEED"]).flat().map((t, i) => (
-            <span key={i} className="font-heading font-bold text-base sm:text-2xl uppercase tracking-widest text-muted-foreground/20 hover:text-primary/40 transition-colors">
-              {t} <span className="text-primary/20 mx-4 sm:mx-6">◆</span>
-            </span>
-          ))}
-        </motion.div>
+        <div className="marquee-ltr" style={{ "--marquee-speed": "20s" } as CSSProperties}>
+          <div className="flex whitespace-nowrap">
+            {["ZERO BOTTLENECKS", "ABSOLUTE POWER", "ENGINEERED PRECISION", "MAXIMUM THROUGHPUT", "RENDER AT LIGHT SPEED",
+              "ZERO BOTTLENECKS", "ABSOLUTE POWER", "ENGINEERED PRECISION", "MAXIMUM THROUGHPUT", "RENDER AT LIGHT SPEED"].map((t, i) => (
+              <span key={i} className="px-6 font-heading font-bold text-base sm:text-2xl uppercase tracking-widest text-muted-foreground/20 hover:text-primary/40 transition-colors">
+                {t} <span className="text-primary/20 ml-4 sm:ml-6">◆</span>
+              </span>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ─── NEW ACQUISITIONS 3×3 GRID ───────────────────────────────── */}
