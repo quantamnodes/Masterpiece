@@ -120,14 +120,14 @@ export function ProductCard({ product, fillContainer = false }: { product: Produ
             {product.name}
           </h3>
           
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
+          <div className="flex flex-col gap-2">
+            <div>
               {product.salePrice ? (
                 <>
                   <span className="text-xs font-mono text-muted-foreground line-through">
                     {formatPrice(product.basePrice)}
                   </span>
-                  <span className="font-mono text-lg font-bold text-primary">
+                  <span className="font-mono text-lg font-bold text-primary block">
                     {formatPrice(product.salePrice)}
                   </span>
                 </>
@@ -137,10 +137,7 @@ export function ProductCard({ product, fillContainer = false }: { product: Produ
                 </span>
               )}
             </div>
-
-            <div className="flex flex-col items-end gap-1">
-              <StockBadge stock={product.stock} />
-            </div>
+            <StockBadge stock={product.stock} />
           </div>
         </div>
       </Link>
