@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useUserStore } from "@/store/user-store";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { CompareBar } from "@/components/CompareBar";
+import { useLocalizationStore } from "@/stores/localization-store";
 
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -35,9 +36,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function AuthInit() {
   const { fetchMe } = useUserStore();
+  const { loadRates, detectFromIp } = useLocalizationStore();
   useEffect(() => {
     fetchMe();
-  }, [fetchMe]);
+    loadRates();
+    detectFromIp();
+  }, [fetchMe, loadRates, detectFromIp]);
   return null;
 }
 

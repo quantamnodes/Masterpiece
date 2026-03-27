@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
 import { useUserStore, TIER_CONFIG, isOwner, isManager, isStaff, type Tier } from "@/store/user-store";
-import { User, Mail, Lock, LogOut, Star, Zap, ShieldCheck, Crown, ChevronRight, Building2, Key, Package, Gift, Clock } from "lucide-react";
+import { User, Mail, Lock, LogOut, Star, Zap, ShieldCheck, Crown, ChevronRight, ChevronDown, Building2, Key, Package, Gift, Clock, MapPin, Ticket, XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { OrderTimeline } from "@/components/OrderTimeline";
 
 const API_BASE = (() => {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -70,6 +71,32 @@ interface OrderRecord {
   createdAt: string;
 }
 
+interface ReservationRecord {
+  id: number;
+  productId: number;
+  branchId: number;
+  otpCode: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  productName: string;
+  productImageUrl: string;
+  productSlug: string;
+  branchName: string;
+  branchLocation: string;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  confirmed: "text-primary border-primary bg-primary/10",
+  packing: "text-amber-400 border-amber-400/40 bg-amber-400/10",
+  dispatched: "text-blue-400 border-blue-400/40 bg-blue-400/10",
+  out_for_delivery: "text-violet-400 border-violet-400/40 bg-violet-400/10",
+  arriving: "text-emerald-400 border-emerald-400/40 bg-emerald-400/10",
+  delivered: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10",
+  cancelled: "text-[#F04444] border-[#F04444]/40 bg-[#F04444]/10",
+  completed: "text-primary border-primary/40 bg-primary/10",
+};
+
 function ProfileView() {
   const { user, logout, setUser } = useUserStore();
   const [claimCode, setClaimCode] = useState("");
@@ -78,6 +105,9 @@ function ProfileView() {
   const [claimLoading, setClaimLoading] = useState(false);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [reservations, setReservations] = useState<ReservationRecord[]>([]);
+  const [reservationsLoading, setReservationsLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -86,7 +116,19 @@ function ProfileView() {
       .then((d) => setOrders(d.orders || []))
       .catch(() => {})
       .finally(() => setOrdersLoading(false));
+    setReservationsLoading(true);
+    apiFetch("/reservations/my")
+      .then((d) => setReservations(d.reservations || []))
+      .catch(() => {})
+      .finally(() => setReservationsLoading(false));
   }, [user?.id]);
+
+  const cancelReservation = async (id: number) => {
+    try {
+      await apiFetch(`/reservations/${id}`, { method: "DELETE" });
+      setReservations((prev) => prev.map((r) => r.id === id ? { ...r, status: "cancelled" } : r));
+    } catch {}
+  };
 
   const handleClaimAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,35 +246,132 @@ function ProfileView() {
           </div>
         ) : (
           <div className="space-y-2">
-            {orders.slice(0, 8).map((order) => {
+            {orders.slice(0, 10).map((order) => {
               const date = new Date(order.createdAt);
               const isPickup = order.fulfillmentType === "pickup";
+              const isExpanded = expandedOrderId === order.id;
+              const statusColor = STATUS_COLORS[order.status] ?? "text-muted-foreground border-border bg-muted";
               return (
-                <div key={order.id} className="flex items-center justify-between p-4 bg-background border border-border/50 rounded-sm hover:border-primary/20 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-2 h-2 rounded-full ${order.status === "completed" ? "bg-primary" : "bg-muted-foreground"}`} />
-                    <div>
-                      <p className="font-mono text-sm font-bold">#{String(order.id).padStart(6, "0")}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="font-mono text-xs text-muted-foreground">{order.itemCount} item{order.itemCount !== 1 ? "s" : ""}</p>
-                        <span className="text-muted-foreground/40">·</span>
-                        <p className="font-mono text-xs text-muted-foreground capitalize">{isPickup ? "Pickup" : "Delivery"}</p>
+                <div key={order.id} className="border border-border/50 rounded-sm overflow-hidden hover:border-primary/20 transition-colors">
+                  <button
+                    onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                    className="w-full flex items-center justify-between p-4 bg-background text-left"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="font-mono text-sm font-bold">#{String(order.id).padStart(6, "0")}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className={`inline-block px-1.5 py-0.5 rounded-sm border font-mono text-[10px] uppercase tracking-wider ${statusColor}`}>
+                            {order.status.replace(/_/g, " ")}
+                          </span>
+                          <span className="text-muted-foreground/40">·</span>
+                          <p className="font-mono text-xs text-muted-foreground">{order.itemCount} item{order.itemCount !== 1 ? "s" : ""}</p>
+                          <span className="text-muted-foreground/40">·</span>
+                          <p className="font-mono text-xs text-muted-foreground capitalize">{isPickup ? "Pickup" : "Delivery"}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm font-bold text-primary">${parseFloat(order.totalAmount).toLocaleString()}</p>
-                    <div className="flex items-center gap-1 justify-end mt-0.5">
-                      <Clock className="w-3 h-3 text-muted-foreground" />
-                      <p className="font-mono text-xs text-muted-foreground">{date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-mono text-sm font-bold text-primary">${parseFloat(order.totalAmount).toLocaleString()}</p>
+                        <div className="flex items-center gap-1 justify-end mt-0.5">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          <p className="font-mono text-xs text-muted-foreground">{date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                        </div>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${isExpanded ? "rotate-180" : ""}`} />
                     </div>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        key="timeline"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden border-t border-border"
+                      >
+                        <OrderTimeline orderId={order.id} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+            {orders.length > 10 && (
+              <p className="font-mono text-xs text-muted-foreground text-center pt-2">+{orders.length - 10} more orders</p>
+            )}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Holds / Reservations */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.17 }}
+        className="border border-border bg-card rounded-sm p-8"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <Ticket className="w-5 h-5 text-primary" />
+          <h3 className="text-xl font-heading font-bold uppercase">My Holds</h3>
+        </div>
+
+        {reservationsLoading ? (
+          <div className="space-y-3">
+            {[1, 2].map((i) => <div key={i} className="h-20 bg-muted/30 rounded-sm animate-pulse" />)}
+          </div>
+        ) : reservations.length === 0 ? (
+          <div className="text-center py-10 border border-dashed border-border rounded-sm">
+            <Ticket className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="font-mono text-sm text-muted-foreground">No active holds</p>
+            <p className="font-mono text-xs text-muted-foreground/60 mt-1">Use "Hold for Me" on any product page to reserve at a branch</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {reservations.map((r) => {
+              const isActive = r.status === "active" && new Date(r.expiresAt) > new Date();
+              const expiresLabel = new Date(r.expiresAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+              return (
+                <div key={r.id} className={`p-4 border rounded-sm ${isActive ? "border-primary/30 bg-primary/5" : "border-border/40 bg-background opacity-60"}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-mono text-sm font-bold text-foreground truncate">{r.productName}</p>
+                        <span className={`inline-block px-1.5 py-0.5 rounded-sm border font-mono text-[10px] uppercase tracking-wider ${
+                          r.status === "active" ? "text-emerald-400 border-emerald-400/40 bg-emerald-400/10" :
+                          r.status === "confirmed" ? "text-primary border-primary/40 bg-primary/10" :
+                          "text-muted-foreground border-border bg-muted"
+                        }`}>
+                          {r.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="font-mono text-xs text-muted-foreground">{r.branchName} — {r.branchLocation}</span>
+                      </div>
+                      {isActive && (
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="font-mono text-xs text-muted-foreground">OTP:</span>
+                          <span className="font-mono text-sm font-bold text-primary tracking-widest">{r.otpCode}</span>
+                          <span className="font-mono text-xs text-amber-400">Expires {expiresLabel}</span>
+                        </div>
+                      )}
+                    </div>
+                    {isActive && (
+                      <button
+                        onClick={() => cancelReservation(r.id)}
+                        className="text-muted-foreground hover:text-[#F04444] transition-colors shrink-0"
+                        title="Cancel hold"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
             })}
-            {orders.length > 8 && (
-              <p className="font-mono text-xs text-muted-foreground text-center pt-2">+{orders.length - 8} more orders</p>
-            )}
           </div>
         )}
       </motion.div>

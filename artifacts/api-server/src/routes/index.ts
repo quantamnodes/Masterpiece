@@ -12,6 +12,10 @@ import branchProductsRouter from "./branch-products";
 import restockRouter from "./restock";
 import userOrdersRouter from "./user-orders";
 import storageRouter from "./storage";
+import reservationsRouter from "./reservations";
+import reviewVotesRouter from "./review-votes";
+import orderTrackingRouter from "./order-tracking";
+import localizationRouter from "./localization";
 
 const router: IRouter = Router();
 
@@ -28,5 +32,9 @@ router.use(accessCodesRouter);
 router.use(branchProductsRouter);
 router.use(restockRouter);
 router.use(userOrdersRouter);
+router.use(reservationsRouter);
+router.use(reviewVotesRouter);
+router.use(orderTrackingRouter);
+router.use(localizationRouter);
 
 export default router;

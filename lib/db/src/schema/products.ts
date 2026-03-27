@@ -131,6 +131,9 @@ export const reviewsTable = pgTable("reviews", {
   body: text("body").notNull(),
   reviewer: text("reviewer").notNull().default("Anonymous"),
   verified: boolean("verified").notNull().default(false),
+  photoUrl: text("photo_url"),
+  helpfulCount: integer("helpful_count").notNull().default(0),
+  unhelpfulCount: integer("unhelpful_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -139,10 +142,15 @@ export const ordersTable = pgTable("orders", {
   userId: integer("user_id"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   itemCount: integer("item_count").notNull().default(1),
-  status: text("status").notNull().default("completed"),
+  status: text("status").notNull().default("confirmed"), // confirmed | packing | dispatched | out_for_delivery | arriving | delivered | cancelled
   fulfillmentType: text("fulfillment_type").notNull().default("delivery"), // delivery | pickup
   branchId: integer("branch_id"), // for pickup orders
   deliveryFee: decimal("delivery_fee", { precision: 8, scale: 2 }).notNull().default("0"),
+  estimatedDelivery: timestamp("estimated_delivery"),
+  riderName: text("rider_name"),
+  riderPhone: text("rider_phone"),
+  deliveryAddress: text("delivery_address"),
+  deliveryNotes: text("delivery_notes").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -155,8 +163,69 @@ export const restockNotificationsTable = pgTable("restock_notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+/* ────────────────────────────────────────────────────────────────────────────
+   NEW FEATURE TABLES
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/** One vote per user per review (helpful / not helpful) */
+export const reviewVotesTable = pgTable("review_votes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  reviewId: integer("review_id").notNull(),
+  helpful: boolean("helpful").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/** "Hold for Me" — reserve a product at a branch for 2 hours */
+export const reservationsTable = pgTable("reservations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  productId: integer("product_id").notNull(),
+  branchId: integer("branch_id").notNull(),
+  otpCode: text("otp_code").notNull(),
+  status: text("status").notNull().default("active"), // active | confirmed | cancelled | expired
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/** Status history entries — one row per status transition */
+export const orderStatusHistoryTable = pgTable("order_status_history", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull(),
+  status: text("status").notNull(), // confirmed | packing | dispatched | out_for_delivery | arriving | delivered
+  note: text("note").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/** Rider live GPS position, one row per active order */
+export const riderLocationsTable = pgTable("rider_locations", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().unique(),
+  lat: decimal("lat", { precision: 10, scale: 7 }).notNull(),
+  lng: decimal("lng", { precision: 10, scale: 7 }).notNull(),
+  heading: integer("heading").notNull().default(0),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/** Discount codes awarded for submitting photo reviews */
+export const discountCodesTable = pgTable("discount_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  discountPct: integer("discount_pct").notNull().default(5),
+  userId: integer("user_id"),
+  reviewId: integer("review_id"),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type Order = typeof ordersTable.$inferSelect;
 export type RestockNotification = typeof restockNotificationsTable.$inferSelect;
+export type ReviewVote = typeof reviewVotesTable.$inferSelect;
+export type Reservation = typeof reservationsTable.$inferSelect;
+export type OrderStatusHistory = typeof orderStatusHistoryTable.$inferSelect;
+export type RiderLocation = typeof riderLocationsTable.$inferSelect;
+export type DiscountCode = typeof discountCodesTable.$inferSelect;
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({
   id: true,

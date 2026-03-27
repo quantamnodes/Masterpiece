@@ -6,11 +6,14 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { WishlistButton } from "@/components/WishlistButton";
 import { useCompareStore } from "@/store/compare-store";
+import { StockBadge } from "@/components/StockBadge";
+import { useLocalizationStore } from "@/stores/localization-store";
 
 export function ProductCard({ product, fillContainer = false }: { product: Product; fillContainer?: boolean }) {
   const { addToCart, isAdding } = useCartManager();
   const { toast } = useToast();
   const { addItem, removeItem, isInList } = useCompareStore();
+  const { formatPrice } = useLocalizationStore();
 
   const handleQuickAdd = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -122,27 +125,21 @@ export function ProductCard({ product, fillContainer = false }: { product: Produ
               {product.salePrice ? (
                 <>
                   <span className="text-xs font-mono text-muted-foreground line-through">
-                    ${product.basePrice.toLocaleString()}
+                    {formatPrice(product.basePrice)}
                   </span>
                   <span className="font-mono text-lg font-bold text-primary">
-                    ${product.salePrice.toLocaleString()}
+                    {formatPrice(product.salePrice)}
                   </span>
                 </>
               ) : (
                 <span className="font-mono text-lg font-bold">
-                  ${product.basePrice.toLocaleString()}
+                  {formatPrice(product.basePrice)}
                 </span>
               )}
             </div>
 
             <div className="flex flex-col items-end gap-1">
-              {isOutOfStock ? (
-                <span className="text-xs font-mono text-destructive">OUT OF STOCK</span>
-              ) : isLowStock ? (
-                <span className="text-xs font-mono text-orange-400">ONLY {product.stock} LEFT</span>
-              ) : (
-                <span className="text-xs font-mono text-muted-foreground">IN STOCK</span>
-              )}
+              <StockBadge stock={product.stock} />
             </div>
           </div>
         </div>

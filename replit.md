@@ -107,15 +107,52 @@ AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always d
 **Pages (10+):**
 - Home — cinematic hero, bento grid, stat counters, 3×3 New Acquisitions grid, Field Reports testimonials, Recently Viewed carousel
 - Products — catalog with category/sort/socket/form-factor/wattage/memory/storage filters + **price range filter** (min/max inputs)
-- Product Detail — spec table, variant switcher, add-to-cart, related products, **recently viewed tracking**, **Notify Me (restock alert)** for OOS items
+- Product Detail — spec table, variant switcher, add-to-cart, related products, **recently viewed tracking**, **Notify Me (restock alert)** for OOS items, **Customer Reviews section** (AI summary + voting), **Hold for Me** button
 - Cart — BOPIS (delivery $15 flat / pickup free + branch selector), real order placement (POST /orders), loyalty point estimate, success screen
 - Contact — support form
-- Account — login/signup tabs, profile with tier badge, spending progress bar, **order history**, **loyalty points balance card**
+- Account — login/signup tabs, profile with tier badge, spending progress bar, **expandable order history with tracking timeline**, **My Holds (reservations)**, **loyalty points balance card**
 - Deals — Deal Vault with discount badges, savings counter, animated deal cards
 - PC Builder — pre-configured build presets + per-slot component selector with live price total
 - Compare — side-by-side spec table for up to 3 products, **pre-populates from compare-store** when navigating from catalog
 - Platinum — tier-gated secret page for Platinum operators with classified deals
 - Wishlist — saved products list with toggle from ProductCard
+
+**Feature Upgrades (v2):**
+- **Traffic-light stock badges** (`StockBadge`): pulsing coloured dot (green >10, amber 1-10, red 0) on all product cards and detail pages
+- **Hold for Me**: `HoldForMeModal` lets buyers reserve a product at a branch for 2 hours with a 4-digit OTP pickup code
+- **Review helpfulness voting** (`ReviewVoteButtons`): thumbs-up/thumbs-down on each review with toggle-off; counts persisted in DB
+- **Customer reviews section** on ProductDetail: star rating, title, body, optional photo URL; submit form for logged-in users
+- **Gamified review incentives**: submitting a photo review auto-generates a 5% discount code
+- **AI review summaries** (`ReviewSummary`): gpt-4o-mini generates a 2-sentence "Customers say…" summary per product, cached in memory for 1 hour
+- **Expanded order tracking timeline** (`OrderTimeline`): 6-step accordion (confirmed → packing → dispatched → out_for_delivery → arriving → delivered) with timestamps, rider info, and live GPS indicator
+- **Live rider GPS tracking**: `PUT /api/orders/:id/rider-location` for rider updates; polling every 15s in Account when order is out for delivery/arriving
+- **Dynamic localization engine**: `useLocalizationStore` (Zustand persist) + `CurrencySelector` in Navbar; 15 currencies (USD, EUR, GBP, JPY, INR, AED, SGD, KRW, CNY, BRL, MXN…); auto-detects from IP on boot; converts all prices via `formatPrice(usdAmount)`
+
+**New DB Tables:**
+- `review_votes` — one vote per user per review (helpful bool)
+- `reservations` — Hold for Me reservations with OTP and expiry
+- `order_status_history` — audit trail of status transitions with timestamps
+- `rider_locations` — live GPS (lat, lng, heading) keyed by orderId
+- `discount_codes` — 5% codes generated for photo reviews
+
+**New columns:** `reviews.photoUrl`, `reviews.helpfulCount`, `reviews.unhelpfulCount`; `orders.estimatedDelivery`, `orders.riderName`, `orders.riderPhone`, `orders.deliveryAddress`, `orders.deliveryNotes`
+
+**New API routes:**
+- `GET  /api/localization/rates` — 15-currency exchange rate table
+- `GET  /api/localization/detect` — IP-based currency detection (ip-api.com)
+- `GET  /api/products/:id/reviews` — review list (sorted by helpfulness)
+- `POST /api/reviews` — submit review + auto-generate discount code for photo reviews
+- `POST /api/reviews/:id/vote` — toggle helpful/unhelpful vote
+- `GET  /api/reviews/:id/my-vote` — current user's vote
+- `GET  /api/products/:id/review-summary` — AI summary (gpt-4o-mini via Replit proxy)
+- `POST /api/reservations` — create 2-hour hold with OTP
+- `GET  /api/reservations/my` — user's reservations
+- `DELETE /api/reservations/:id` — cancel hold
+- `PUT  /api/reservations/:id/confirm` — OTP-based pickup confirmation
+- `GET  /api/orders/:id/tracking` — full timeline + rider info + ETA
+- `PUT  /api/orders/:id/status` — advance order status (staff)
+- `PUT  /api/orders/:id/rider-location` — rider GPS update
+- `GET  /api/orders/:id/rider-location` — buyer polls rider position
 
 **Design:** Brutalist luxury / futuristic noir — #050505 bg, #00F0FF cyan, #F04444 red accent
 **Typography:** Space Grotesk (headings), Inter (body), JetBrains Mono (specs/numbers)
