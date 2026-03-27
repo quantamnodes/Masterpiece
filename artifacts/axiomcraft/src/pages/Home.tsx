@@ -14,6 +14,9 @@
  *   6. TestimonialsSection  — two-row testimonial + feature marquee carousel
  */
 
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowUp } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { HeroSection }             from "@/components/sections/home/HeroSection";
 import { StatStripSection }        from "@/components/sections/home/StatStripSection";
@@ -25,6 +28,16 @@ import { TestimonialsSection }     from "@/components/sections/home/Testimonials
 /* ─── PAGE COMPONENT ────────────────────────────────────────────────────── */
 
 export default function Home() {
+  const [pastHero, setPastHero] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setPastHero(window.scrollY > window.innerHeight * 0.8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
   return (
     <Layout>
       {/* ===== Section 1: Hero ===== */}
@@ -44,6 +57,24 @@ export default function Home() {
 
       {/* ===== Section 6: Testimonials + Feature Highlights Carousel ===== */}
       <TestimonialsSection />
+
+      {/* ===== Back to Top ===== */}
+      <AnimatePresence>
+        {pastHero && (
+          <motion.button
+            key="back-to-top"
+            onClick={scrollToTop}
+            initial={{ opacity: 0, y: 16, scale: 0.85 }}
+            animate={{ opacity: 1, y: 0,  scale: 1 }}
+            exit={{    opacity: 0, y: 16, scale: 0.85 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            aria-label="Back to top"
+            className="fixed bottom-8 right-8 z-50 flex items-center justify-center w-11 h-11 rounded-sm border border-primary/40 bg-background/80 backdrop-blur-sm text-primary shadow-[0_0_20px_rgba(0,240,255,0.15)] hover:border-primary hover:shadow-[0_0_28px_rgba(0,240,255,0.35)] hover:bg-primary/10 transition-all duration-200"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 }
