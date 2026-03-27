@@ -138,8 +138,7 @@ export default function Products() {
   const [priceMin,      setPriceMin]      = useState<string>("");
   const [priceMax,      setPriceMax]      = useState<string>("");
 
-  const commitPriceMin = () => setPriceMin(priceMinDraft);
-  const commitPriceMax = () => setPriceMax(priceMaxDraft);
+  const applyPriceRange = () => { setPriceMin(priceMinDraft); setPriceMax(priceMaxDraft); };
 
   /* ── Dynamic filter options (fetched from API) ── */
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
@@ -376,8 +375,7 @@ export default function Products() {
                 min={0}
                 value={priceMinDraft}
                 onChange={(e) => setPriceMinDraft(e.target.value)}
-                onBlur={commitPriceMin}
-                onKeyDown={(e) => e.key === "Enter" && commitPriceMin()}
+                onKeyDown={(e) => e.key === "Enter" && applyPriceRange()}
                 placeholder="0"
                 className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
               />
@@ -390,21 +388,28 @@ export default function Products() {
                 min={0}
                 value={priceMaxDraft}
                 onChange={(e) => setPriceMaxDraft(e.target.value)}
-                onBlur={commitPriceMax}
-                onKeyDown={(e) => e.key === "Enter" && commitPriceMax()}
+                onKeyDown={(e) => e.key === "Enter" && applyPriceRange()}
                 placeholder="∞"
                 className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
               />
             </div>
           </div>
-          {(priceMinDraft || priceMaxDraft) && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => { setPriceMinDraft(""); setPriceMaxDraft(""); setPriceMin(""); setPriceMax(""); }}
-              className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors"
+              onClick={applyPriceRange}
+              className="flex-1 bg-primary text-background font-mono text-xs font-semibold uppercase tracking-widest py-2 rounded-sm hover:bg-primary/90 transition-colors"
             >
-              Clear range
+              Apply
             </button>
-          )}
+            {(priceMinDraft || priceMaxDraft) && (
+              <button
+                onClick={() => { setPriceMinDraft(""); setPriceMaxDraft(""); setPriceMin(""); setPriceMax(""); }}
+                className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
