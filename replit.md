@@ -92,6 +92,14 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `lib/object-storage-web` (`@workspace/object-storage-web`)
+
+Client-side object storage upload library using presigned URLs (GCS). Exports:
+- `useUpload(options)` — React hook for plain `<input type="file">` uploads: requests presigned URL from backend, then PUTs file directly to GCS. Returns `{ uploadFile, isUploading, progress, error }`.
+- `ObjectUploader` — Uppy-based modal component for drag-and-drop uploads (uses `@uppy/dashboard` + `@uppy/aws-s3`).
+
+**Upload flow:** `POST /api/storage/uploads/request-url` (JSON metadata) → PUT to presigned URL → store `objectPath` in DB → serve via `GET /api/storage/objects/{path}`.
+
 ### `artifacts/axiomcraft` (`@workspace/axiomcraft`)
 
 AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always dark mode.
@@ -135,7 +143,7 @@ AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always d
 - GET /api/products/:productId/branches — branch availability for a product
 
 **Dashboards:**
-- /dashboard — Owner Panel (Products, Branches, Access Codes tabs)
+- /dashboard — Owner Panel (Products, Branches, Access Codes tabs). Product form has `ProductImageField` component: inline URL input + Upload button (uses `useUpload` from `@workspace/object-storage-web`). File uploads go to GCS via presigned URL; the resulting `/api/storage/objects/…` URL is auto-populated into the form.
 - /manager — Manager Panel (branch product management for their assigned branch)
 
 **Navbar:** Dropdown menus (Hardware → categories, Tools → PC Builder/Compare/Deals), user dropdown with tier badge, search overlay, animated cart badge, mobile slide-over. Shows "Dashboard" for owners, "My Branch" for managers.

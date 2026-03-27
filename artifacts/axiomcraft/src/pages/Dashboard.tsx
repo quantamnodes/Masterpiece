@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useUpload } from "@workspace/object-storage-web";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid,
@@ -12,6 +13,7 @@ import {
   ChevronDown, ChevronUp, Search, Package, DollarSign, ImageIcon, Layers,
   Building2, Key, Copy, ToggleLeft, ToggleRight, MapPin, Phone, User,
   BarChart3, TrendingUp, Activity, Star, SlidersHorizontal, Boxes,
+  Upload, Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -76,6 +78,81 @@ const EMPTY_FORM = {
 };
 
 type FormData = typeof EMPTY_FORM & { specs: Array<{ name: string; value: string }> };
+
+function ProductImageField({ imageUrl, slug, onChange }: { imageUrl: string; slug: string; onChange: (url: string) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState("");
+  const inputCls = "w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors";
+  const labelCls = "block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5";
+
+  const { uploadFile, isUploading, progress } = useUpload({
+    onSuccess: (response) => {
+      onChange(`/api/storage${response.objectPath}`);
+      setUploadError("");
+    },
+    onError: (err) => setUploadError(err.message),
+  });
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      setUploadError("Only PNG and JPG files are allowed.");
+      return;
+    }
+    setUploadError("");
+    await uploadFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const previewSrc = imageUrl || (slug ? `https://picsum.photos/seed/${slug}/400/300` : null);
+
+  return (
+    <div>
+      <label className={labelCls}>
+        Product Image <span className="text-muted-foreground/50 normal-case tracking-normal">URL or upload PNG/JPG</span>
+      </label>
+      <div className="flex gap-2">
+        <input
+          className={inputCls}
+          value={imageUrl}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={`https://picsum.photos/seed/${slug || "product"}/800/600`}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="shrink-0 flex items-center gap-2 px-4 py-2 border border-primary/40 bg-primary/10 text-primary font-mono text-xs uppercase tracking-widest rounded-sm hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+          {isUploading ? `${progress}%` : "Upload"}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+      {uploadError && <p className="mt-1 font-mono text-xs text-destructive">{uploadError}</p>}
+      {previewSrc && (
+        <div className="mt-2 flex items-center gap-3">
+          <img
+            src={previewSrc}
+            alt="preview"
+            className="w-20 h-16 object-cover rounded-sm border border-border bg-muted"
+            onError={(e) => {
+              if (slug) (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${slug}/400/300`;
+            }}
+          />
+          <span className="font-mono text-xs text-muted-foreground">Image preview</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ProductForm({
   initial,
@@ -168,21 +245,11 @@ function ProductForm({
         </div>
       </div>
 
-      <div>
-        <label className={labelCls}>Image URL <span className="text-muted-foreground/50 normal-case tracking-normal">leave blank to auto-generate</span></label>
-        <input className={inputCls} value={form.imageUrl} onChange={(e) => setField("imageUrl", e.target.value)} placeholder={`https://picsum.photos/seed/${form.slug || "product"}/800/600`} />
-        {(form.imageUrl || form.slug) && (
-          <div className="mt-2 flex items-center gap-3">
-            <img
-              src={form.imageUrl || `https://picsum.photos/seed/${form.slug}/400/300`}
-              alt="preview"
-              className="w-20 h-16 object-cover rounded-sm border border-border bg-muted"
-              onError={(e) => { (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${form.slug}/400/300`; }}
-            />
-            <span className="font-mono text-xs text-muted-foreground">Image preview</span>
-          </div>
-        )}
-      </div>
+      <ProductImageField
+        imageUrl={form.imageUrl}
+        slug={form.slug}
+        onChange={(url) => setField("imageUrl", url)}
+      />
 
       <div>
         <label className={labelCls}>Short Description</label>

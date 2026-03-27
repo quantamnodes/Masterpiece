@@ -11,10 +11,12 @@ import accessCodesRouter from "./access-codes";
 import branchProductsRouter from "./branch-products";
 import restockRouter from "./restock";
 import userOrdersRouter from "./user-orders";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(storageRouter);
 router.use(productsRouter);
 router.use(cartRouter);
 router.use(authRouter);
