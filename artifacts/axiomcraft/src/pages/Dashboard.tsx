@@ -42,6 +42,18 @@ interface AccessCode {
 
 const API = import.meta.env.VITE_API_URL || `${import.meta.env.BASE_URL}api`;
 
+const CATEGORIES: { slug: string; label: string }[] = [
+  { slug: "gpus",         label: "GPUs" },
+  { slug: "cpus",         label: "CPUs" },
+  { slug: "motherboards", label: "Motherboards" },
+  { slug: "memory",       label: "Memory" },
+  { slug: "storage",      label: "Storage" },
+  { slug: "psus",         label: "PSUs" },
+  { slug: "cooling",      label: "Cooling" },
+  { slug: "cases",        label: "Cases" },
+  { slug: "peripherals",  label: "Peripherals" },
+];
+
 interface Product {
   id: number;
   name: string;
