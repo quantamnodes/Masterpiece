@@ -1,19 +1,18 @@
 import { Link } from "react-router-dom";
 import {
   motion,
-  AnimatePresence,
   useScroll,
   useTransform,
   useInView,
   useMotionValue,
   useSpring,
 } from "framer-motion";
-import { Cpu, Zap, Shield, ArrowRight, ChevronRight, ChevronLeft } from "lucide-react";
+import { Cpu, Zap, Shield, ArrowRight, ChevronRight } from "lucide-react";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
 import { RecentlyViewedCarousel } from "@/components/RecentlyViewedCarousel";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from "react";
 
 const ALL_TESTIMONIALS = [
   { name: "DR_APEX", tier: "Platinum", rating: 5, text: "The X870E Apex is a beast. Running AM5 at 6.4GHz all-core with thermals that don't flinch. Zero instability in 4 months of 24/7 operation." },
@@ -30,6 +29,15 @@ const ALL_TESTIMONIALS = [
   { name: "MATRIX_CORP", tier: "Gold", rating: 5, text: "Equipped 40 workstations in a month with zero defects. Account manager tracked every order personally. AxiomCraft is our permanent vendor." },
 ];
 
+const UPGRADE_CARDS = [
+  { tag: "Global Commerce", title: "Dynamic Localization Engine", text: "Smart IP detection auto-adjusts currency, language, and local VAT on arrival. Localized catalogs hide unshippable items and surface region-specific bestsellers — frictionlessly." },
+  { tag: "Omnichannel Inventory", title: "Predictive Reserve & Hold", text: '"Hold for Me" secures any item at your nearest branch for up to 4 hours — no payment upfront. Traffic-light stock indicators drive urgency without exposing exact counts.' },
+  { tag: "Community Intelligence", title: "AI-Summarized Reviews", text: "AI reads every review and surfaces what actually matters in seconds. Filter by build type, vote on helpfulness, and upload photos or clips of your rig in action." },
+  { tag: "Post-Purchase", title: "Instant Resolution Center", text: "Select your issue — damaged, wrong part, late delivery — and receive an instant resolution: partial refund, store credit, or auto-generated return label. No queue, no wait." },
+  { tag: "Order Tracking", title: "Micro-Status Timelines", text: "Six granular stages from Order Confirmed to Delivered, with predictive ETAs and live progress animations. Eliminates 'Where is my order?' support tickets entirely." },
+  { tag: "Last-Mile Security", title: "Uber-Style Live Dispatch", text: "Live GPS rider map, masked two-way comms, and OTP Proof of Delivery. Your package reaches you and only you — every time, with photographic confirmation." },
+];
+
 function TierColor(tier: string) {
   if (tier === "Platinum") return "border-primary/40 bg-primary/10 text-primary";
   if (tier === "Gold") return "border-yellow-400/40 bg-yellow-400/10 text-yellow-400";
@@ -37,144 +45,85 @@ function TierColor(tier: string) {
   return "border-amber-600/40 bg-amber-600/10 text-amber-600";
 }
 
-function TestimonialCard({ t, delay = 0 }: { t: typeof ALL_TESTIMONIALS[0]; delay?: number }) {
+function TestimonialCard({ t }: { t: typeof ALL_TESTIMONIALS[0] }) {
   return (
-    <div className="border border-border bg-card/50 rounded-sm p-5 sm:p-6 relative overflow-hidden group hover:border-primary/30 transition-colors h-full flex flex-col">
+    <div className="w-[340px] shrink-0 border border-border bg-card/60 rounded-sm p-5 mx-3 relative overflow-hidden group hover:border-primary/40 transition-colors flex flex-col">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      <div className="flex items-center gap-1 mb-3 sm:mb-4">
+      <div className="flex items-center gap-1 mb-3">
         {Array(t.rating).fill(0).map((_, si) => (
-          <Zap key={si} className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary fill-primary" />
+          <Zap key={si} className="w-3 h-3 text-primary fill-primary" />
         ))}
       </div>
-      <p className="font-sans text-xs sm:text-sm text-muted-foreground leading-relaxed mb-4 sm:mb-6 flex-1">"{t.text}"</p>
-      <div className="flex items-center justify-between">
+      <p className="font-sans text-xs text-muted-foreground leading-relaxed mb-5 flex-1">"{t.text}"</p>
+      <div className="flex items-center justify-between mt-auto">
         <div>
-          <p className="font-mono text-xs sm:text-sm font-bold">{t.name}</p>
-          <p className="font-mono text-[10px] sm:text-xs text-muted-foreground uppercase">{t.tier} Operator</p>
+          <p className="font-mono text-xs font-bold">{t.name}</p>
+          <p className="font-mono text-[10px] text-muted-foreground uppercase">{t.tier} Operator</p>
         </div>
-        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-sm border flex items-center justify-center ${TierColor(t.tier)}`}>
-          <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <div className={`w-7 h-7 rounded-sm border flex items-center justify-center ${TierColor(t.tier)}`}>
+          <Shield className="w-3.5 h-3.5" />
         </div>
       </div>
     </div>
   );
 }
 
-function TestimonialsCarousel() {
-  const DESKTOP_PER_PAGE = 6;
-  const TOTAL_DESKTOP_PAGES = Math.ceil(ALL_TESTIMONIALS.length / DESKTOP_PER_PAGE);
-  const [desktopPage, setDesktopPage] = useState(0);
-  const [mobileIdx, setMobileIdx] = useState(0);
-  const [direction, setDirection] = useState(1);
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setDirection(1);
-      setDesktopPage((p) => (p + 1) % TOTAL_DESKTOP_PAGES);
-    }, 5000);
-    return () => clearInterval(t);
-  }, [TOTAL_DESKTOP_PAGES]);
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setMobileIdx((p) => (p + 1) % ALL_TESTIMONIALS.length);
-    }, 4000);
-    return () => clearInterval(t);
-  }, []);
-
-  const desktopSlice = ALL_TESTIMONIALS.slice(
-    desktopPage * DESKTOP_PER_PAGE,
-    (desktopPage + 1) * DESKTOP_PER_PAGE,
-  );
-
-  const slideVariants = {
-    enter: (d: number) => ({ x: d > 0 ? 50 : -50, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (d: number) => ({ x: d > 0 ? -50 : 50, opacity: 0 }),
-  };
-
-  const mobileVariants = {
-    enter: { x: 60, opacity: 0 },
-    center: { x: 0, opacity: 1 },
-    exit: { x: -60, opacity: 0 },
-  };
-
-  const goDesktop = (dir: number) => {
-    setDirection(dir);
-    setDesktopPage((p) => (p + dir + TOTAL_DESKTOP_PAGES) % TOTAL_DESKTOP_PAGES);
-  };
-
-  const goMobile = (dir: number) => {
-    setMobileIdx((p) => (p + dir + ALL_TESTIMONIALS.length) % ALL_TESTIMONIALS.length);
-  };
-
+function UpgradeCard({ u }: { u: typeof UPGRADE_CARDS[0] }) {
   return (
-    <div>
-      {/* Desktop: 3×2 grid carousel */}
-      <div className="hidden md:block relative">
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={desktopPage}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            className="grid grid-cols-3 gap-6"
-          >
-            {desktopSlice.map((t) => (
-              <TestimonialCard key={t.name} t={t} />
-            ))}
-          </motion.div>
-        </AnimatePresence>
-        {/* Desktop controls */}
-        <div className="flex items-center justify-center gap-4 mt-8">
-          <button onClick={() => goDesktop(-1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-          <div className="flex gap-2">
-            {Array(TOTAL_DESKTOP_PAGES).fill(0).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setDirection(i > desktopPage ? 1 : -1); setDesktopPage(i); }}
-                className={`h-1 rounded-full transition-all duration-300 ${i === desktopPage ? "w-8 bg-primary" : "w-4 bg-border hover:bg-primary/40"}`}
-              />
-            ))}
-          </div>
-          <button onClick={() => goDesktop(1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronRight className="w-5 h-5" /></button>
-        </div>
+    <div className="w-[340px] shrink-0 border border-primary/20 bg-primary/5 rounded-sm p-5 mx-3 relative overflow-hidden group hover:border-primary/50 transition-colors flex flex-col">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="mb-3">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-primary border border-primary/30 bg-primary/10 px-2 py-0.5 rounded-sm">{u.tag}</span>
       </div>
+      <h4 className="font-heading font-bold text-sm uppercase tracking-tight text-foreground mb-2">{u.title}</h4>
+      <p className="font-sans text-xs text-muted-foreground leading-relaxed flex-1">{u.text}</p>
+      <div className="mt-4 h-px bg-gradient-to-r from-primary/30 to-transparent" />
+    </div>
+  );
+}
 
-      {/* Mobile: 1×1 carousel */}
-      <div className="md:hidden">
-        <div className="relative overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={mobileIdx}
-              variants={mobileVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <TestimonialCard t={ALL_TESTIMONIALS[mobileIdx]} />
-            </motion.div>
-          </AnimatePresence>
-        </div>
-        {/* Mobile controls */}
-        <div className="flex items-center justify-center gap-3 mt-5">
-          <button onClick={() => goMobile(-1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-          <div className="flex gap-1.5">
-            {ALL_TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setMobileIdx(i)}
-                className={`h-1 rounded-full transition-all duration-300 ${i === mobileIdx ? "w-5 bg-primary" : "w-2 bg-border"}`}
-              />
-            ))}
-          </div>
-          <button onClick={() => goMobile(1)} className="p-1.5 text-muted-foreground hover:text-primary transition-colors"><ChevronRight className="w-4 h-4" /></button>
-        </div>
+function MarqueeTrack({ items, renderItem, direction = 1, speed = 40 }: {
+  items: unknown[];
+  renderItem: (item: unknown, key: string) => ReactNode;
+  direction?: 1 | -1;
+  speed?: number;
+}) {
+  return (
+    <div className="overflow-hidden relative marquee-track">
+      <div
+        className={direction === 1 ? "flex marquee-ltr" : "flex marquee-rtl"}
+        style={{ "--marquee-speed": `${speed}s` } as CSSProperties}
+      >
+        {items.map((item, i) => renderItem(item, `a-${i}`))}
+        {items.map((item, i) => renderItem(item, `b-${i}`))}
       </div>
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-background to-transparent z-10" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-background to-transparent z-10" />
+    </div>
+  );
+}
+
+function TestimonialsCarousel() {
+  return (
+    <div className="space-y-4">
+      <MarqueeTrack
+        items={ALL_TESTIMONIALS}
+        direction={1}
+        speed={45}
+        renderItem={(item, key) => {
+          const t = item as typeof ALL_TESTIMONIALS[0];
+          return <TestimonialCard key={key} t={t} />;
+        }}
+      />
+      <MarqueeTrack
+        items={UPGRADE_CARDS}
+        direction={-1}
+        speed={38}
+        renderItem={(item, key) => {
+          const u = item as typeof UPGRADE_CARDS[0];
+          return <UpgradeCard key={key} u={u} />;
+        }}
+      />
     </div>
   );
 }
