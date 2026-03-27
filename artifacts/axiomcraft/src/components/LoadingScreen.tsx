@@ -140,27 +140,22 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-          {/* Scanning line */}
+          {/* Scanning line — top position is dynamic, height is fixed */}
           <div
-            className="absolute inset-x-0 pointer-events-none z-10"
-            style={{ top: `${scanY}%`, height: "2px" }}
+            className="absolute inset-x-0 pointer-events-none z-10 h-[2px]"
+            style={{ top: `${scanY}%` }}
           >
             <div className="w-full h-full bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
           </div>
 
-          {/* Grid overlay */}
+          {/* Grid overlay — uses named CSS class, no inline background style */}
           <AnimatePresence>
             {gridVisible && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6 }}
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(rgba(0,240,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,0.025) 1px, transparent 1px)",
-                  backgroundSize: "60px 60px",
-                }}
+                className="loading-screen-grid-overlay"
               />
             )}
           </AnimatePresence>
@@ -196,8 +191,7 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
 
               <div className="relative">
                 <h1
-                  className="font-heading font-black uppercase tracking-tight text-6xl md:text-7xl text-white select-none"
-                  style={{ letterSpacing: "-0.02em" }}
+                  className="font-heading font-black uppercase text-6xl md:text-7xl text-white select-none loading-screen-logo-wordmark"
                 >
                   {logoDisplayed.slice(0, 5)}
                   <span className="text-primary">{logoDisplayed.slice(5)}</span>
@@ -214,8 +208,7 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
                 {logoPhase === "done" && (
                   <>
                     <motion.div
-                      className="absolute inset-0 font-heading font-black uppercase text-6xl md:text-7xl text-primary/20 select-none pointer-events-none"
-                      style={{ letterSpacing: "-0.02em" }}
+                      className="absolute inset-0 font-heading font-black uppercase text-6xl md:text-7xl text-primary/20 select-none pointer-events-none loading-screen-logo-wordmark"
                       animate={{
                         x: [0, -3, 3, 0, 0],
                         opacity: [0, 0.8, 0.8, 0, 0],
@@ -237,8 +230,7 @@ export function LoadingScreen({ onComplete }: { onComplete: () => void }) {
                       AXIOM<span className="text-primary">CRAFT</span>
                     </motion.div>
                     <motion.div
-                      className="absolute inset-0 font-heading font-black uppercase text-6xl md:text-7xl text-red-500/20 select-none pointer-events-none"
-                      style={{ letterSpacing: "-0.02em" }}
+                      className="absolute inset-0 font-heading font-black uppercase text-6xl md:text-7xl text-red-500/20 select-none pointer-events-none loading-screen-logo-wordmark"
                       animate={{
                         x: [0, 3, -3, 0, 0],
                         opacity: [0, 0.6, 0.6, 0, 0],

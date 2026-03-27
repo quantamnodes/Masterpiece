@@ -1,141 +1,215 @@
+/**
+ * Navbar — fixed top navigation bar for AxiomCraft.
+ *
+ * Responsibilities:
+ *  - Logo wordmark + icon
+ *  - Desktop navigation: Home, Hardware dropdown, Tools dropdown, Contact,
+ *    role-gated Dashboard / My Branch links
+ *  - Right-side actions: search button, Deals badge, UserMenu, cart icon,
+ *    mobile hamburger toggle
+ *  - Keyboard shortcut: ⌘K / Ctrl+K opens the search modal
+ *  - Frosted-glass backdrop when scrolled past 20 px
+ *
+ * Sub-components (same file — small enough to stay co-located):
+ *   DropdownMenu   — hover/click dropdown with animated panel
+ *   UserMenu       — authenticated user avatar + popup profile menu
+ *
+ * Extracted to separate files:
+ *   SearchModal    — full-screen command palette overlay
+ *   MobileMenu     — full-screen slide-in mobile navigation
+ */
+
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search, Crown, Tag, Wrench, ArrowRight, Star, Zap, LogOut, Heart, Layers, Building2 } from "lucide-react";
+import {
+  ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search,
+  Crown, Tag, Wrench, ArrowRight, Star, Zap, LogOut, Heart,
+  Layers, Building2,
+} from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCartManager } from "@/hooks/use-cart-manager";
-import { motion, AnimatePresence } from "framer-motion";
 import { useUserStore, TIER_CONFIG, isOwner, isManager, type Tier } from "@/store/user-store";
-import { SearchBar } from "@/components/SearchBar";
+import { SearchModal } from "@/components/nav/SearchModal";
+import { MobileMenu  } from "@/components/nav/MobileMenu";
+
+/* ─── NAVIGATION DATA ────────────────────────────────────────────────────── */
 
 const HARDWARE_LINKS = [
-  { label: "GPUs", href: "/products?category=gpus", desc: "Graphics processing units" },
-  { label: "CPUs", href: "/products?category=cpus", desc: "Processors & cores" },
-  { label: "Motherboards", href: "/products?category=motherboards", desc: "System foundations" },
-  { label: "Memory", href: "/products?category=memory", desc: "DDR5 & high-speed RAM" },
-  { label: "Storage", href: "/products?category=storage", desc: "NVMe & SSDs" },
-  { label: "PSUs", href: "/products?category=psus", desc: "Power supplies" },
-  { label: "All Hardware", href: "/products", desc: "Browse full catalog" },
+  { label: "GPUs",         href: "/products?category=gpus",         desc: "Graphics processing units"   },
+  { label: "CPUs",         href: "/products?category=cpus",         desc: "Processors & cores"          },
+  { label: "Motherboards", href: "/products?category=motherboards",  desc: "System foundations"          },
+  { label: "Memory",       href: "/products?category=memory",        desc: "DDR5 & high-speed RAM"       },
+  { label: "Storage",      href: "/products?category=storage",       desc: "NVMe & SSDs"                 },
+  { label: "PSUs",         href: "/products?category=psus",          desc: "Power supplies"              },
+  { label: "All Hardware", href: "/products",                        desc: "Browse full catalog"         },
 ];
 
-function DropdownMenu({ children, label, icon: Icon }: { children: React.ReactNode; label: string; icon?: React.ElementType }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+/* ─── SUB-COMPONENTS ────────────────────────────────────────────────────── */
 
+/**
+ * DropdownMenu — generic hover + click dropdown wrapper.
+ *
+ * Opens on mouseenter, closes on mouseleave or external click.
+ * Renders an animated panel below the trigger button.
+ */
+function DropdownMenu({
+  children,
+  label,
+  icon: Icon,
+}: {
+  children: React.ReactNode;
+  label: string;
+  icon?: React.ElementType;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  /* Close when clicking outside this component */
   useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   return (
-    <div ref={ref} className="relative">
+    /* ===== Dropdown Menu Start ===== */
+    <div ref={containerRef} className="relative">
+      {/* ── Dropdown Trigger Button ── */}
       <button
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 text-sm font-medium tracking-wide uppercase transition-colors hover:text-primary text-muted-foreground py-1"
+        onMouseEnter={() => setIsOpen(true)}
+        onMouseLeave={() => setIsOpen(false)}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="navbar-dropdown-trigger"
       >
         {Icon && <Icon className="w-4 h-4" />}
         {label}
-        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+        <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
           <ChevronDown className="w-3.5 h-3.5" />
         </motion.span>
       </button>
+
+      {/* ── Animated Dropdown Panel ── */}
       <AnimatePresence>
-        {open && (
+        {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+            exit={  { opacity: 0, y: 8, scale: 0.97 }}
             transition={{ duration: 0.18 }}
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
-            className="absolute left-0 top-full mt-2 z-50 min-w-[280px] bg-card border border-border rounded-sm shadow-2xl overflow-hidden"
+            onMouseEnter={() => setIsOpen(true)}
+            onMouseLeave={() => setIsOpen(false)}
+            className="navbar-dropdown-panel"
           >
             {children}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+    /* ===== Dropdown Menu End ===== */
   );
 }
 
+/**
+ * UserMenu — authenticated user avatar + popup profile/links menu.
+ *
+ * Shows a plain User icon link to /account when logged out.
+ * Shows username + popup when logged in, with role-gated links.
+ */
 function UserMenu() {
   const { user, logout } = useUserStore();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  useEffect(() => {
-    setOpen(false);
-  }, [location.pathname]);
+  /* Close on route change */
+  useEffect(() => { setIsOpen(false); }, [location.pathname]);
 
+  /* Close on outside click */
   useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+  /* ── Logged-out state: plain icon link ── */
   if (!user) {
     return (
-      <Link to="/account" className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors">
+      <Link to="/account" className="navbar-icon-button" aria-label="Sign in">
         <User className="w-5 h-5" />
       </Link>
     );
   }
 
-  const cfg = TIER_CONFIG[user.tier as Tier];
+  const tierConfig = TIER_CONFIG[user.tier as Tier];
 
   return (
-    <div ref={ref} className="relative">
+    /* ===== User Menu Start ===== */
+    <div ref={containerRef} className="relative">
+      {/* ── Avatar / Username Trigger ── */}
       <button
-        onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 text-sm font-mono transition-colors ${cfg.color} hover:opacity-80`}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`navbar-user-trigger ${tierConfig.color}`}
       >
         <User className="w-5 h-5" />
         <span className="hidden md:block">{user.username}</span>
       </button>
+
+      {/* ── Profile Popup ── */}
       <AnimatePresence>
-        {open && (
+        {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+            exit={  { opacity: 0, y: 8, scale: 0.97 }}
             transition={{ duration: 0.18 }}
-            className="absolute right-0 top-full mt-2 z-50 w-56 bg-card border border-border rounded-sm shadow-2xl overflow-hidden"
+            className="navbar-user-popup"
           >
-            <div className="px-4 py-3 border-b border-border">
-              <p className="font-heading font-bold text-sm">{user.username}</p>
-              <p className="font-mono text-xs text-muted-foreground">{user.email}</p>
-              <span className={`inline-block mt-1 text-xs font-mono font-bold uppercase ${cfg.color}`}>{cfg.label} Operator</span>
+            {/* User summary header */}
+            <div className="navbar-user-popup-header">
+              <p className="navbar-user-popup-name">{user.username}</p>
+              <p className="navbar-user-popup-email">{user.email}</p>
+              <span className={`navbar-user-popup-tier ${tierConfig.color}`}>
+                {tierConfig.label} Operator
+              </span>
             </div>
-            <Link to="/account" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm hover:bg-muted/30 transition-colors">
-              <User className="w-4 h-4 text-muted-foreground" /> My Profile
+
+            {/* Standard account links */}
+            <Link to="/account"  onClick={() => setIsOpen(false)} className="navbar-popup-link">
+              <User  className="w-4 h-4 text-muted-foreground" /> My Profile
             </Link>
-            <Link to="/wishlist" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm hover:bg-muted/30 transition-colors">
+            <Link to="/wishlist" onClick={() => setIsOpen(false)} className="navbar-popup-link">
               <Heart className="w-4 h-4 text-muted-foreground" /> Wishlist
             </Link>
+
+            {/* Role-gated links */}
             {isOwner(user) && (
-              <Link to="/dashboard" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-primary hover:bg-primary/10 transition-colors border-t border-border">
-                <Layers className="w-4 h-4" /> Owner Dashboard
+              <Link to="/dashboard" onClick={() => setIsOpen(false)} className="navbar-popup-link navbar-popup-link--role">
+                <Layers    className="w-4 h-4" /> Owner Dashboard
               </Link>
             )}
             {isManager(user) && (
-              <Link to="/manager" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-primary hover:bg-primary/10 transition-colors border-t border-border">
+              <Link to="/manager"   onClick={() => setIsOpen(false)} className="navbar-popup-link navbar-popup-link--role">
                 <Building2 className="w-4 h-4" /> Manager Panel
               </Link>
             )}
             {user.tier === "platinum" && (
-              <Link to="/platinum" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-primary hover:bg-primary/10 transition-colors border-t border-border">
-                <Crown className="w-4 h-4" /> Platinum Vault
+              <Link to="/platinum"  onClick={() => setIsOpen(false)} className="navbar-popup-link navbar-popup-link--role">
+                <Crown     className="w-4 h-4" /> Platinum Vault
               </Link>
             )}
+
+            {/* Sign out */}
             <button
-              onClick={() => { logout(); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-4 py-2.5 font-mono text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors border-t border-border"
+              onClick={() => { logout(); setIsOpen(false); }}
+              className="navbar-popup-sign-out"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
@@ -143,104 +217,91 @@ function UserMenu() {
         )}
       </AnimatePresence>
     </div>
+    /* ===== User Menu End ===== */
   );
 }
 
-export function Navbar() {
-  const location = useLocation();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const { itemCount } = useCartManager();
-  const { user } = useUserStore();
+/* ─── MAIN EXPORT ────────────────────────────────────────────────────────── */
 
+export function Navbar() {
+  const location     = useLocation();
+  const { itemCount } = useCartManager();
+  const { user }     = useUserStore();
+
+  const [isScrolled,      setIsScrolled]      = useState(false);
+  const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
+  const [searchOpen,      setSearchOpen]      = useState(false);
+
+  /* Frosted-glass effect when the page is scrolled */
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* ⌘K / Ctrl+K keyboard shortcut to open search */
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setSearchOpen((o) => !o);
+        setSearchOpen((prev) => !prev);
       }
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
+  /* Close mobile menu on route change */
+  useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
+
+  const isActivePath = (path: string) => location.pathname === path;
 
   return (
+    /* ===== Navbar Start ===== */
     <>
-      {/* Search command palette */}
-      <AnimatePresence>
-        {searchOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4"
-            style={{ background: "rgba(5,5,5,0.85)", backdropFilter: "blur(20px)" }}
-            onClick={(e) => { if (e.target === e.currentTarget) setSearchOpen(false); }}
-          >
-            <motion.div
-              initial={{ y: -16, opacity: 0, scale: 0.98 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: -16, opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full max-w-2xl bg-[#0a0a0c] border border-border rounded-sm shadow-[0_32px_80px_rgba(0,0,0,0.8),0_0_0_1px_rgba(0,240,255,0.06)] overflow-hidden"
-            >
-              {/* Top accent line */}
-              <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-              <SearchBar onClose={() => setSearchOpen(false)} />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── Search Command Palette ── */}
+      <SearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+      />
 
+      {/* ── Main Header Bar ── */}
       <header
-        className={`fixed top-0 inset-x-0 z-40 transition-all duration-300 border-b ${
-          isScrolled ? "bg-background/80 backdrop-blur-md border-border" : "bg-transparent border-transparent"
+        className={`navbar-header ${
+          isScrolled
+            ? "navbar-header--scrolled"
+            : "navbar-header--transparent"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group shrink-0" data-testid="link-home">
-              <div className="w-10 h-10 bg-primary/10 border border-primary/30 flex items-center justify-center rounded-sm group-hover:bg-primary/20 transition-colors">
+        <div className="page-container">
+          <div className="navbar-inner">
+
+            {/* ── Logo ── */}
+            <Link to="/" className="navbar-logo" data-testid="link-home">
+              <div className="navbar-logo-icon-wrapper">
                 <Cpu className="w-6 h-6 text-primary" />
               </div>
-              <span className="font-heading font-bold text-xl tracking-wider text-foreground hidden sm:block">
+              <span className="navbar-logo-wordmark">
                 AXIOM<span className="text-primary">CRAFT</span>
               </span>
             </Link>
 
-            {/* Desktop nav */}
-            <nav className="hidden lg:flex items-center gap-6">
+            {/* ── Desktop Navigation ── */}
+            <nav className="navbar-desktop-nav" aria-label="Main navigation">
               <Link
                 to="/"
-                className={`text-sm font-medium tracking-wide uppercase transition-colors hover:text-primary ${location.pathname === "/" ? "text-primary" : "text-muted-foreground"}`}
+                className={`navbar-nav-link ${isActivePath("/") ? "navbar-nav-link--active" : ""}`}
               >
                 Home
               </Link>
 
               {/* Hardware dropdown */}
               <DropdownMenu label="Hardware">
-                <div className="grid grid-cols-2 gap-0">
+                <div className="navbar-dropdown-grid">
                   {HARDWARE_LINKS.map((link) => (
-                    <Link
-                      key={link.href}
-                      to={link.href}
-                      className="flex flex-col px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/50 last:col-span-2"
-                    >
-                      <span className="font-heading font-bold text-sm">{link.label}</span>
-                      <span className="font-mono text-xs text-muted-foreground">{link.desc}</span>
+                    <Link key={link.href} to={link.href} className="navbar-dropdown-item">
+                      <span className="navbar-dropdown-item-label">{link.label}</span>
+                      <span className="navbar-dropdown-item-desc">{link.desc}</span>
                     </Link>
                   ))}
                 </div>
@@ -248,40 +309,32 @@ export function Navbar() {
 
               {/* Tools dropdown */}
               <DropdownMenu label="Tools">
-                <Link to="/build" className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/50">
-                  <Wrench className="w-4 h-4 text-primary shrink-0" />
-                  <div>
-                    <p className="font-heading font-bold text-sm">PC Builder</p>
-                    <p className="font-mono text-xs text-muted-foreground">Configure your rig</p>
-                  </div>
+                <Link to="/build"   className="navbar-dropdown-item-icon">
+                  <Wrench    className="w-4 h-4 text-primary shrink-0" />
+                  <div><p className="navbar-dropdown-item-label">PC Builder</p><p className="navbar-dropdown-item-desc">Configure your rig</p></div>
                 </Link>
-                <Link to="/compare" className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors border-b border-border/50">
+                <Link to="/compare" className="navbar-dropdown-item-icon">
                   <ArrowRight className="w-4 h-4 text-primary shrink-0" />
-                  <div>
-                    <p className="font-heading font-bold text-sm">Compare</p>
-                    <p className="font-mono text-xs text-muted-foreground">Side-by-side specs</p>
-                  </div>
+                  <div><p className="navbar-dropdown-item-label">Compare</p><p className="navbar-dropdown-item-desc">Side-by-side specs</p></div>
                 </Link>
-                <Link to="/deals" className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors">
-                  <Tag className="w-4 h-4 text-destructive shrink-0" />
-                  <div>
-                    <p className="font-heading font-bold text-sm">Deals</p>
-                    <p className="font-mono text-xs text-muted-foreground">Discounted hardware</p>
-                  </div>
+                <Link to="/deals"   className="navbar-dropdown-item-icon">
+                  <Tag        className="w-4 h-4 text-destructive shrink-0" />
+                  <div><p className="navbar-dropdown-item-label">Deals</p><p className="navbar-dropdown-item-desc">Discounted hardware</p></div>
                 </Link>
               </DropdownMenu>
 
               <Link
                 to="/contact"
-                className={`text-sm font-medium tracking-wide uppercase transition-colors hover:text-primary ${location.pathname === "/contact" ? "text-primary" : "text-muted-foreground"}`}
+                className={`navbar-nav-link ${isActivePath("/contact") ? "navbar-nav-link--active" : ""}`}
               >
                 Contact
               </Link>
 
+              {/* Role-gated admin links */}
               {isOwner(user) && (
                 <Link
                   to="/dashboard"
-                  className={`flex items-center gap-1.5 text-xs font-mono tracking-widest uppercase px-3 py-1.5 border rounded-sm transition-all ${location.pathname === "/dashboard" ? "border-primary bg-primary/20 text-primary" : "border-primary/50 text-primary hover:bg-primary/10"}`}
+                  className={`navbar-role-link ${isActivePath("/dashboard") ? "navbar-role-link--active" : ""}`}
                 >
                   <Layers className="w-3.5 h-3.5" /> Dashboard
                 </Link>
@@ -289,55 +342,54 @@ export function Navbar() {
               {isManager(user) && (
                 <Link
                   to="/manager"
-                  className={`flex items-center gap-1.5 text-xs font-mono tracking-widest uppercase px-3 py-1.5 border rounded-sm transition-all ${location.pathname === "/manager" ? "border-primary bg-primary/20 text-primary" : "border-primary/50 text-primary hover:bg-primary/10"}`}
+                  className={`navbar-role-link ${isActivePath("/manager") ? "navbar-role-link--active" : ""}`}
                 >
                   <Building2 className="w-3.5 h-3.5" /> My Branch
                 </Link>
               )}
             </nav>
 
-            {/* Right actions */}
-            <div className="flex items-center gap-3">
-              {/* Search */}
+            {/* ── Right-Side Action Cluster ── */}
+            <div className="navbar-actions">
+
+              {/* Desktop search button */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-border/50 rounded-sm text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-white/[0.03] transition-all group"
+                className="navbar-search-button"
                 aria-label="Search"
               >
                 <Search className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
-                <span className="font-mono text-xs text-muted-foreground/60">Search...</span>
-                <kbd className="flex items-center gap-0.5 font-mono text-[10px] text-muted-foreground/40 border border-border/40 rounded px-1 py-0.5">⌘K</kbd>
+                <span className="navbar-search-placeholder">Search...</span>
+                <kbd className="navbar-search-kbd">⌘K</kbd>
               </button>
+
+              {/* Mobile search icon */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="md:hidden p-2 text-muted-foreground hover:text-primary transition-colors"
+                className="md:hidden navbar-icon-button"
                 aria-label="Search"
               >
                 <Search className="w-5 h-5" />
               </button>
 
               {/* Deals badge */}
-              <Link to="/deals" className="hidden md:flex items-center gap-1.5 px-3 py-1.5 border border-destructive/40 text-destructive font-mono text-xs uppercase rounded-sm hover:bg-destructive/10 transition-colors">
+              <Link to="/deals" className="navbar-deals-badge">
                 <Zap className="w-3 h-3" /> Deals
               </Link>
 
-              {/* User */}
+              {/* Authenticated user menu */}
               <UserMenu />
 
-              {/* Cart */}
-              <Link
-                to="/cart"
-                className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
-                data-testid="link-cart"
-              >
+              {/* Cart with animated item count badge */}
+              <Link to="/cart" className="navbar-icon-button relative" data-testid="link-cart">
                 <ShoppingCart className="w-5 h-5" />
                 <AnimatePresence>
                   {itemCount > 0 && (
                     <motion.span
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center rounded-sm"
+                      exit={  { scale: 0 }}
+                      className="navbar-cart-badge"
                     >
                       {itemCount}
                     </motion.span>
@@ -345,83 +397,28 @@ export function Navbar() {
                 </AnimatePresence>
               </Link>
 
-              {/* Mobile hamburger */}
+              {/* Mobile hamburger toggle */}
               <button
-                className="lg:hidden p-2 text-foreground"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden navbar-icon-button"
+                onClick={() => setMobileMenuOpen((prev) => !prev)}
                 data-testid="button-mobile-menu"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
+
           </div>
         </div>
       </header>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "100%" }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 z-40 bg-background overflow-y-auto pt-20"
-          >
-            <div className="px-6 py-8 space-y-1">
-              {/* Search */}
-              <button
-                onClick={() => { setMobileMenuOpen(false); setSearchOpen(true); }}
-                className="w-full flex items-center gap-3 py-4 border-b border-border text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Search className="w-5 h-5" />
-                <span className="font-mono text-sm uppercase">Search Hardware</span>
-              </button>
-
-              <Link to="/" className="block py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">Home</Link>
-
-              {/* Hardware submenu */}
-              <div className="py-4 border-b border-border">
-                <p className="font-heading font-bold text-2xl uppercase mb-4">Hardware</p>
-                <div className="grid grid-cols-2 gap-2 pl-2">
-                  {HARDWARE_LINKS.map((link) => (
-                    <Link key={link.href} to={link.href} className="font-mono text-sm text-muted-foreground hover:text-primary transition-colors py-1">
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <Link to="/build" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
-                <Wrench className="w-6 h-6" /> PC Builder
-              </Link>
-              <Link to="/compare" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
-                <ArrowRight className="w-6 h-6" /> Compare
-              </Link>
-              <Link to="/deals" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border text-destructive hover:opacity-80 transition-opacity">
-                <Tag className="w-6 h-6" /> Deals
-              </Link>
-              <Link to="/contact" className="block py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">Contact</Link>
-              <Link to="/account" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
-                <User className="w-6 h-6" /> Account
-              </Link>
-              <Link to="/wishlist" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-border hover:text-primary transition-colors">
-                <Heart className="w-6 h-6" /> Wishlist
-              </Link>
-              {isOwner(user) && (
-                <Link to="/dashboard" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-primary/40 text-primary hover:opacity-80 transition-opacity">
-                  <Layers className="w-6 h-6" /> Dashboard
-                </Link>
-              )}
-              {isManager(user) && (
-                <Link to="/manager" className="flex items-center gap-3 py-4 text-2xl font-heading font-bold uppercase border-b border-primary/40 text-primary hover:opacity-80 transition-opacity">
-                  <Building2 className="w-6 h-6" /> My Branch
-                </Link>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── Mobile Slide-In Navigation ── */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        user={user}
+        onOpenSearch={() => { setMobileMenuOpen(false); setSearchOpen(true); }}
+      />
     </>
+    /* ===== Navbar End ===== */
   );
 }

@@ -204,8 +204,7 @@ export default function Compare() {
                       <td className="pb-6 px-3 align-top">
                         <button
                           onClick={() => setShowPicker(true)}
-                          className="w-full aspect-square border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors group"
-                          style={{ minHeight: 200 }}
+                          className="w-full aspect-square min-h-[200px] border-2 border-dashed border-border rounded-sm flex flex-col items-center justify-center gap-2 hover:border-primary/50 transition-colors group"
                         >
                           <Plus className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
                           <span className="font-mono text-xs text-muted-foreground group-hover:text-primary transition-colors uppercase">Add product</span>

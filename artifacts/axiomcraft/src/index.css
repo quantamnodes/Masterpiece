@@ -1,48 +1,88 @@
+/* ==========================================================================
+   AxiomCraft — Global Stylesheet
+   Brutalist Luxury / Futuristic Noir design system
+   ==========================================================================
+
+   Table of Contents
+   ─────────────────
+   1.  Fonts & Imports
+   2.  Tailwind Directives
+   3.  Design Tokens (CSS Custom Properties)
+   4.  Base Layer Overrides
+   5.  Utility Classes
+   6.  Marquee Animation (infinite-scroll rows)
+   7.  Layout & Shared Section Primitives
+   8.  Shared Button Components
+   9.  Navbar Component
+  10.  Search Modal Component
+  11.  Mobile Menu Component
+  12.  Hero Section
+  13.  Stat Strip Section
+  14.  Bento Grid Section
+  15.  Manifesto Strip Section
+  16.  Testimonials Section
+  17.  Featured Products Section
+  18.  Loading Screen Component
+
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. FONTS & IMPORTS
+   ========================================================================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+
+/* ==========================================================================
+   2. TAILWIND DIRECTIVES
+   ========================================================================== */
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
+/* Maps Tailwind color/font/radius tokens to CSS variables defined in §3 */
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+  --color-background:          hsl(var(--background));
+  --color-foreground:          hsl(var(--foreground));
+  --color-border:              hsl(var(--border));
+  --color-input:               hsl(var(--input));
+  --color-ring:                hsl(var(--ring));
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-card-border: hsl(var(--card-border));
+  --color-card:                hsl(var(--card));
+  --color-card-foreground:     hsl(var(--card-foreground));
+  --color-card-border:         hsl(var(--card-border));
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-popover-border: hsl(var(--popover-border));
+  --color-popover:             hsl(var(--popover));
+  --color-popover-foreground:  hsl(var(--popover-foreground));
+  --color-popover-border:      hsl(var(--popover-border));
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-primary-border: var(--primary-border);
+  --color-primary:             hsl(var(--primary));
+  --color-primary-foreground:  hsl(var(--primary-foreground));
+  --color-primary-border:      var(--primary-border);
 
-  --color-secondary: hsl(var(--secondary));
+  --color-secondary:           hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-secondary-border: var(--secondary-border);
+  --color-secondary-border:    var(--secondary-border);
 
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-muted-border: var(--muted-border);
+  --color-muted:               hsl(var(--muted));
+  --color-muted-foreground:    hsl(var(--muted-foreground));
+  --color-muted-border:        var(--muted-border);
 
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-accent-border: var(--accent-border);
+  --color-accent:              hsl(var(--accent));
+  --color-accent-foreground:   hsl(var(--accent-foreground));
+  --color-accent-border:       var(--accent-border);
 
-  --color-destructive: hsl(var(--destructive));
+  --color-destructive:         hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-destructive-border: var(--destructive-border);
+  --color-destructive-border:  var(--destructive-border);
 
-  --font-sans: 'Inter', sans-serif;
+  --font-sans:    'Inter', sans-serif;
   --font-heading: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono:    'JetBrains Mono', monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -50,134 +90,960 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+
+/* ==========================================================================
+   3. DESIGN TOKENS (CSS Custom Properties)
+   All colour, spacing, and shadow values live here so changing the palette
+   is a single-file edit with no JSX changes required.
+   ========================================================================== */
+
 :root {
-  --button-outline: rgba(255, 255, 255, 0.10);
-  --badge-outline: rgba(255, 255, 255, 0.05);
-  --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(255, 255, 255, 0.04);
-  --elevate-2: rgba(255, 255, 255, 0.09);
+  /* ── Interactive surface overlays ── */
+  --button-outline:                  rgba(255, 255, 255, 0.10);
+  --badge-outline:                   rgba(255, 255, 255, 0.05);
+  --opaque-button-border-intensity:  9;
+  --elevate-1:                       rgba(255, 255, 255, 0.04);
+  --elevate-2:                       rgba(255, 255, 255, 0.09);
 
-  /* AxiomCraft Brutalist Luxury Dark Theme */
-  --background: 0 0% 2%;        /* #050505 */
-  --foreground: 0 0% 98%;       /* #FAFAFA */
-  --border: 240 6% 12%;         /* Dark gray border */
-  
-  --card: 240 6% 4%;            /* #09090B */
-  --card-foreground: 0 0% 98%;
-  --card-border: 240 6% 12%;
-  
-  --sidebar: 240 6% 4%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 240 6% 12%;
-  --sidebar-primary: 184 100% 50%;
+  /* ── Colour Palette (AxiomCraft Brutalist Luxury Dark) ── */
+  --background:           0 0% 2%;        /* #050505 — near-black page bg  */
+  --foreground:           0 0% 98%;       /* #FAFAFA — primary text        */
+  --border:               240 6% 12%;     /* Dark gray border              */
+
+  --card:                 240 6% 4%;      /* #09090B — card surface        */
+  --card-foreground:      0 0% 98%;
+  --card-border:          240 6% 12%;
+
+  --sidebar:              240 6% 4%;
+  --sidebar-foreground:   0 0% 98%;
+  --sidebar-border:       240 6% 12%;
+  --sidebar-primary:      184 100% 50%;
   --sidebar-primary-foreground: 0 0% 2%;
-  --sidebar-accent: 240 6% 12%;
+  --sidebar-accent:       240 6% 12%;
   --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-ring: 184 100% 50%;
-  
-  --popover: 240 6% 4%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 240 6% 12%;
-  
-  --primary: 184 100% 50%;      /* #00F0FF Cyan */
-  --primary-foreground: 0 0% 2%;
-  
-  --secondary: 240 6% 12%;
-  --secondary-foreground: 0 0% 98%;
-  
-  --muted: 240 6% 8%;
-  --muted-foreground: 240 4% 65%; /* #A1A1AA */
-  
-  --accent: 184 100% 50%;
-  --accent-foreground: 0 0% 2%;
-  
-  --destructive: 0 84% 60%;     /* #F04444 Red */
-  --destructive-foreground: 0 0% 98%;
-  
-  --input: 240 6% 12%;
-  --ring: 184 100% 50%;
-  
-  --radius: 0.25rem;            /* Sharp, brutalist corners */
+  --sidebar-ring:         184 100% 50%;
 
+  --popover:              240 6% 4%;
+  --popover-foreground:   0 0% 98%;
+  --popover-border:       240 6% 12%;
+
+  --primary:              184 100% 50%;   /* #00F0FF — cyan accent         */
+  --primary-foreground:   0 0% 2%;
+
+  --secondary:            240 6% 12%;
+  --secondary-foreground: 0 0% 98%;
+
+  --muted:                240 6% 8%;
+  --muted-foreground:     240 4% 65%;     /* #A1A1AA — secondary text      */
+
+  --accent:               184 100% 50%;
+  --accent-foreground:    0 0% 2%;
+
+  --destructive:          0 84% 60%;      /* #F04444 — red alert accent    */
+  --destructive-foreground: 0 0% 98%;
+
+  --input:                240 6% 12%;
+  --ring:                 184 100% 50%;
+
+  --radius:               0.25rem;        /* Sharp brutalist corners        */
+
+  /* ── Elevation Shadows ── */
   --shadow-2xs: 0px 2px 0px 0px rgba(0, 240, 255, 0.05);
-  --shadow-xs: 0px 2px 0px 0px rgba(0, 240, 255, 0.05);
-  --shadow-sm: 0px 2px 0px 0px rgba(0, 0, 0, 0.5), 0px 1px 2px -1px rgba(0, 0, 0, 0.5);
-  --shadow: 0px 2px 0px 0px rgba(0, 0, 0, 0.5), 0px 1px 2px -1px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0px 2px 0px 0px rgba(0, 0, 0, 0.5), 0px 2px 4px -1px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0px 10px 30px -5px rgba(0, 0, 0, 0.8), 0px 4px 6px -1px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0px 20px 40px -5px rgba(0, 0, 0, 0.8), 0px 8px 10px -1px rgba(0, 0, 0, 0.5);
+  --shadow-xs:  0px 2px 0px 0px rgba(0, 240, 255, 0.05);
+  --shadow-sm:  0px 2px 0px 0px rgba(0, 0, 0, 0.5), 0px 1px 2px -1px rgba(0, 0, 0, 0.5);
+  --shadow:     0px 2px 0px 0px rgba(0, 0, 0, 0.5), 0px 1px 2px -1px rgba(0, 0, 0, 0.5);
+  --shadow-md:  0px 2px 0px 0px rgba(0, 0, 0, 0.5), 0px 2px 4px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg:  0px 10px 30px -5px rgba(0, 0, 0, 0.8), 0px 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-xl:  0px 20px 40px -5px rgba(0, 0, 0, 0.8), 0px 8px 10px -1px rgba(0, 0, 0, 0.5);
   --shadow-2xl: 0px 25px 50px -12px rgba(0, 0, 0, 0.9);
 }
 
+
+/* ==========================================================================
+   4. BASE LAYER OVERRIDES
+   Applies design tokens to raw HTML elements so every component inherits
+   correct colours and fonts without class names.
+   ========================================================================== */
+
 @layer base {
-  * {
-    @apply border-border;
-  }
+  /* Default border colour pulls from the --border design token */
+  * { @apply border-border; }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* Force dark mode background globally */
     background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    color:            hsl(var(--foreground));
   }
+
+  /* All headings use the display font */
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading tracking-tight;
   }
 }
 
-/* Custom premium tech classes */
+
+/* ==========================================================================
+   5. UTILITY CLASSES
+   Single-purpose helpers that can be applied to any element.
+   ========================================================================== */
+
 @layer utilities {
+  /* Cyan text glow — used on hero headline accent word */
   .text-glow {
     text-shadow: 0 0 20px hsla(var(--primary) / 0.5);
   }
+
+  /* Cyan box glow — used on hovered cards and focused inputs */
   .box-glow {
-    box-shadow: 0 0 30px hsla(var(--primary) / 0.15), inset 0 0 20px hsla(var(--primary) / 0.05);
+    box-shadow:
+      0 0 30px hsla(var(--primary) / 0.15),
+      inset 0 0 20px hsla(var(--primary) / 0.05);
   }
+
+  /* Subtle pixel grid overlay — reusable on any section */
   .bg-grid-pattern {
-    background-image: linear-gradient(to right, hsla(var(--border) / 0.3) 1px, transparent 1px),
-                      linear-gradient(to bottom, hsla(var(--border) / 0.3) 1px, transparent 1px);
+    background-image:
+      linear-gradient(to right,  hsla(var(--border) / 0.3) 1px, transparent 1px),
+      linear-gradient(to bottom, hsla(var(--border) / 0.3) 1px, transparent 1px);
     background-size: 40px 40px;
   }
-  
-  /* Strip default webkit search styling */
+
+  /* Hides the default WebKit search cancel (×) button */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
 
+  /* Hover overlay lift effect — add to any element as a modifier */
   .hover-elevate:not(.no-default-hover-elevate)::after {
     content: "";
     pointer-events: none;
     position: absolute;
-    inset: 0px;
+    inset: 0;
     border-radius: inherit;
     z-index: 999;
   }
-
   .hover-elevate:hover:not(.no-default-hover-elevate)::after {
     background-color: var(--elevate-1);
   }
 }
 
+
+/* ==========================================================================
+   6. MARQUEE ANIMATION
+   Infinite horizontal scroll used in ManifestoStrip and TestimonialsSection.
+
+   Usage:
+     <div class="marquee-track">           ← outer: enables hover-pause
+       <div class="marquee-ltr"
+            style="--marquee-speed: 40s">  ← inner: runs the animation
+         ...items (rendered twice)...
+       </div>
+     </div>
+
+   The inner element must render items TWICE so the CSS `-50%` translate
+   lands exactly on the copy boundary (no visible seam).
+   Speed is controlled per-row via --marquee-speed on the inner element.
+   ========================================================================== */
+
 @keyframes marquee-ltr {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from { transform: translateX(0);    }
+  to   { transform: translateX(-50%); }
 }
 
 @keyframes marquee-rtl {
   from { transform: translateX(-50%); }
-  to { transform: translateX(0); }
+  to   { transform: translateX(0);    }
 }
 
+/* Left-to-right scrolling row */
 .marquee-ltr {
-  width: max-content;
+  width: max-content; /* Prevents wrapping so -50% translate is accurate */
   animation: marquee-ltr var(--marquee-speed, 40s) linear infinite;
 }
 
+/* Right-to-left scrolling row */
 .marquee-rtl {
   width: max-content;
   animation: marquee-rtl var(--marquee-speed, 40s) linear infinite;
 }
 
+/* Pause all children when hovering the track wrapper */
 .marquee-track:hover .marquee-ltr,
 .marquee-track:hover .marquee-rtl {
   animation-play-state: paused;
+}
+
+
+/* ==========================================================================
+   7. LAYOUT & SHARED SECTION PRIMITIVES
+   Reusable layout helpers shared across all page sections.
+   ========================================================================== */
+
+/* Responsive content column — centred, max 7xl, standard side padding */
+.page-container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* ── Section Typography ── */
+
+/* Large bold uppercase section title (e.g. "Hardware Matrix") */
+.section-heading {
+  @apply text-3xl md:text-5xl font-heading font-bold uppercase tracking-tight mb-2;
+}
+
+/* Mono sub-label below a section heading (e.g. "SELECT COMPONENT PROTOCOL") */
+.section-subheading {
+  @apply text-muted-foreground font-mono text-sm;
+}
+
+/* Small all-caps label above a section heading */
+.section-overline {
+  @apply font-mono text-xs uppercase tracking-widest text-primary mb-3;
+}
+
+/* Body copy below a section heading — used in centred header blocks */
+.section-description {
+  @apply text-muted-foreground font-sans max-w-xl mx-auto;
+}
+
+/* Centred section header group (overline + heading + description) */
+.section-header-centered {
+  @apply text-center mb-12;
+}
+
+
+/* ==========================================================================
+   8. SHARED BUTTON COMPONENTS
+   Standalone — copy the class + its CSS block into any project.
+   ========================================================================== */
+
+/* Solid cyan primary CTA button */
+.btn-primary {
+  @apply px-8 py-4
+         bg-primary text-primary-foreground
+         font-heading font-bold uppercase tracking-wider text-sm
+         rounded-sm transition-colors
+         flex items-center gap-2;
+}
+
+/* Ghost / outline secondary button */
+.btn-ghost {
+  @apply px-8 py-4
+         bg-transparent border border-border text-foreground
+         font-heading font-bold uppercase tracking-wider text-sm
+         rounded-sm transition-colors;
+}
+
+
+/* ==========================================================================
+   9. NAVBAR COMPONENT
+   Fixed top navigation bar.
+
+   Modifier classes:
+     .navbar-header--scrolled     → frosted glass backdrop
+     .navbar-header--transparent  → fully transparent (at page top)
+   ========================================================================== */
+
+/* ── Header Bar ── */
+.navbar-header {
+  @apply fixed top-0 inset-x-0 z-40 transition-all duration-300 border-b;
+}
+.navbar-header--scrolled {
+  @apply bg-background/80 backdrop-blur-md border-border;
+}
+.navbar-header--transparent {
+  @apply bg-transparent border-transparent;
+}
+
+/* Inner flex row — logo left, nav centre, actions right */
+.navbar-inner {
+  @apply flex justify-between items-center h-20;
+}
+
+/* ── Logo ── */
+.navbar-logo {
+  @apply flex items-center gap-2 shrink-0;
+}
+.navbar-logo-icon-wrapper {
+  @apply w-10 h-10 bg-primary/10 border border-primary/30
+         flex items-center justify-center rounded-sm transition-colors;
+}
+.navbar-logo:hover .navbar-logo-icon-wrapper {
+  @apply bg-primary/20;
+}
+.navbar-logo-wordmark {
+  @apply font-heading font-bold text-xl tracking-wider text-foreground hidden sm:block;
+}
+
+/* ── Desktop Navigation ── */
+.navbar-desktop-nav {
+  @apply hidden lg:flex items-center gap-6;
+}
+.navbar-nav-link {
+  @apply text-sm font-medium tracking-wide uppercase
+         transition-colors hover:text-primary text-muted-foreground;
+}
+.navbar-nav-link--active {
+  @apply text-primary;
+}
+
+/* ── Dropdown ── */
+.navbar-dropdown-trigger {
+  @apply flex items-center gap-1.5 text-sm font-medium tracking-wide uppercase
+         transition-colors hover:text-primary text-muted-foreground py-1;
+}
+.navbar-dropdown-panel {
+  @apply absolute left-0 top-full mt-2 z-50 min-w-[280px]
+         bg-card border border-border rounded-sm shadow-2xl overflow-hidden;
+}
+.navbar-dropdown-grid {
+  @apply grid grid-cols-2 gap-0;
+}
+.navbar-dropdown-item {
+  @apply flex flex-col px-4 py-3
+         hover:bg-muted/30 transition-colors
+         border-b border-border/50 last:col-span-2;
+}
+.navbar-dropdown-item-label {
+  @apply font-heading font-bold text-sm;
+}
+.navbar-dropdown-item-desc {
+  @apply font-mono text-xs text-muted-foreground;
+}
+/* Icon-prefixed dropdown item (Tools menu) */
+.navbar-dropdown-item-icon {
+  @apply flex items-center gap-3 px-4 py-3
+         hover:bg-muted/30 transition-colors border-b border-border/50;
+}
+
+/* ── Role-Gated Admin Link (Dashboard / My Branch) ── */
+.navbar-role-link {
+  @apply flex items-center gap-1.5 text-xs font-mono tracking-widest uppercase
+         px-3 py-1.5 border rounded-sm transition-all
+         border-primary/50 text-primary hover:bg-primary/10;
+}
+.navbar-role-link--active {
+  @apply border-primary bg-primary/20;
+}
+
+/* ── Right-Side Action Cluster ── */
+.navbar-actions {
+  @apply flex items-center gap-3;
+}
+
+/* Search pill button (desktop) */
+.navbar-search-button {
+  @apply hidden md:flex items-center gap-2 px-3 py-1.5
+         border border-border/50 rounded-sm
+         text-muted-foreground hover:text-foreground
+         hover:border-primary/40 hover:bg-white/[0.03]
+         transition-all;
+}
+.navbar-search-placeholder {
+  @apply font-mono text-xs text-muted-foreground/60;
+}
+.navbar-search-kbd {
+  @apply flex items-center gap-0.5 font-mono text-[10px]
+         text-muted-foreground/40 border border-border/40
+         rounded px-1 py-0.5;
+}
+
+/* Deals promo badge */
+.navbar-deals-badge {
+  @apply hidden md:flex items-center gap-1.5 px-3 py-1.5
+         border border-destructive/40 text-destructive
+         font-mono text-xs uppercase rounded-sm
+         hover:bg-destructive/10 transition-colors;
+}
+
+/* Generic icon-only button (search mobile, cart, hamburger) */
+.navbar-icon-button {
+  @apply p-2 text-muted-foreground hover:text-primary transition-colors;
+}
+
+/* Cart item count badge */
+.navbar-cart-badge {
+  @apply absolute -top-1 -right-1 w-5 h-5
+         bg-primary text-primary-foreground
+         text-xs font-bold flex items-center justify-center rounded-sm;
+}
+
+/* ── User Menu ── */
+.navbar-user-trigger {
+  @apply flex items-center gap-1.5 text-sm font-mono transition-colors hover:opacity-80;
+}
+.navbar-user-popup {
+  @apply absolute right-0 top-full mt-2 z-50 w-56
+         bg-card border border-border rounded-sm shadow-2xl overflow-hidden;
+}
+.navbar-user-popup-header {
+  @apply px-4 py-3 border-b border-border;
+}
+.navbar-user-popup-name  { @apply font-heading font-bold text-sm; }
+.navbar-user-popup-email { @apply font-mono text-xs text-muted-foreground; }
+.navbar-user-popup-tier  {
+  @apply inline-block mt-1 text-xs font-mono font-bold uppercase;
+}
+
+/* Standard popup link row */
+.navbar-popup-link {
+  @apply flex items-center gap-2 px-4 py-2.5
+         font-mono text-sm hover:bg-muted/30 transition-colors;
+}
+/* Role-gated popup links (Dashboard / Branch / Platinum) */
+.navbar-popup-link--role {
+  @apply text-primary hover:bg-primary/10 border-t border-border;
+}
+/* Sign-out button row */
+.navbar-popup-sign-out {
+  @apply w-full flex items-center gap-2 px-4 py-2.5
+         font-mono text-sm text-muted-foreground
+         hover:text-destructive hover:bg-destructive/5
+         transition-colors border-t border-border;
+}
+
+
+/* ==========================================================================
+  10. SEARCH MODAL COMPONENT
+   Full-screen command palette overlay.
+   Triggered by the ⌘K shortcut or the search button in the Navbar.
+   ========================================================================== */
+
+/* Frosted-glass full-screen backdrop */
+.search-modal-backdrop {
+  @apply fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4;
+  background:    rgba(5, 5, 5, 0.85);
+  backdrop-filter: blur(20px);
+}
+
+/* Centred search panel card */
+.search-modal-panel {
+  @apply w-full max-w-2xl rounded-sm overflow-hidden;
+  background: #0a0a0c;
+  border: 1px solid hsl(var(--border));
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(0, 240, 255, 0.06);
+}
+
+/* Thin cyan hairline at the top of the panel */
+.search-modal-accent-line {
+  @apply h-[1px] w-full;
+  background: linear-gradient(
+    to right,
+    transparent,
+    hsl(var(--primary) / 0.5),
+    transparent
+  );
+}
+
+
+/* ==========================================================================
+  11. MOBILE MENU COMPONENT
+   Full-screen slide-in navigation for small viewports (< lg).
+   ========================================================================== */
+
+/* Full-screen panel that slides in from the right */
+.mobile-menu {
+  @apply fixed inset-0 z-40 bg-background overflow-y-auto pt-20;
+}
+
+/* Padded inner column */
+.mobile-menu-inner {
+  @apply px-6 py-8 space-y-1;
+}
+
+/* Search shortcut row */
+.mobile-menu-search-btn {
+  @apply w-full flex items-center gap-3 py-4
+         border-b border-border text-muted-foreground
+         hover:text-primary transition-colors;
+}
+.mobile-menu-search-btn span {
+  @apply font-mono text-sm uppercase;
+}
+
+/* Primary-level nav link (e.g. Home, Contact) */
+.mobile-menu-primary-link {
+  @apply block py-4 text-2xl font-heading font-bold uppercase
+         border-b border-border hover:text-primary transition-colors;
+}
+
+/* Hardware sub-section */
+.mobile-menu-submenu       { @apply py-4 border-b border-border; }
+.mobile-menu-submenu-title { @apply font-heading font-bold text-2xl uppercase mb-4; }
+.mobile-menu-submenu-grid  { @apply grid grid-cols-2 gap-2 pl-2; }
+.mobile-menu-submenu-link  {
+  @apply font-mono text-sm text-muted-foreground hover:text-primary transition-colors py-1;
+}
+
+/* Icon + label nav link */
+.mobile-menu-icon-link {
+  @apply flex items-center gap-3 py-4
+         text-2xl font-heading font-bold uppercase
+         border-b border-border hover:text-primary transition-colors;
+}
+/* Variant: destructive colour (Deals) */
+.mobile-menu-icon-link--destructive {
+  @apply text-destructive hover:text-destructive hover:opacity-80;
+}
+/* Variant: primary colour (role-gated links) */
+.mobile-menu-icon-link--primary {
+  @apply text-primary border-primary/40 hover:text-primary hover:opacity-80;
+}
+
+
+/* ==========================================================================
+  12. HERO SECTION
+   Full-viewport cinematic opener with parallax, floating orbs, scan line,
+   grid overlay, animated headline, sub-line, CTAs, and scroll indicator.
+   ========================================================================== */
+
+/* Outer section — full viewport height, flex centre */
+.hero-section {
+  @apply relative min-h-[100vh] flex items-center pt-20 overflow-hidden;
+}
+
+/* ── Parallax Background ── */
+.hero-bg-layer {
+  @apply absolute inset-0 z-0;
+}
+.hero-bg-image {
+  @apply w-full h-full object-cover mix-blend-screen;
+}
+/* Gradient that fades the image into the page background */
+.hero-bg-gradient-fade {
+  @apply absolute inset-0;
+  background: linear-gradient(
+    to top,
+    hsl(var(--background)) 0%,
+    hsl(var(--background) / 0.7) 50%,
+    transparent 100%
+  );
+}
+
+/* ── Floating Ambient Orbs ── */
+.hero-ambient-orb {
+  @apply absolute rounded-full pointer-events-none;
+  background: hsl(var(--primary) / 0.1);
+  filter: blur(96px);
+}
+
+/* ── Animated Scan Line ── */
+.hero-scan-line {
+  @apply absolute left-0 right-0 h-[2px] pointer-events-none z-20;
+  background: linear-gradient(
+    to right,
+    transparent,
+    hsl(var(--primary) / 0.4),
+    transparent
+  );
+}
+
+/* ── Cyan Pixel Grid Overlay ── */
+/* Creates the subtle circuit-board grid visible over the hero background */
+.hero-grid-overlay {
+  @apply absolute inset-0 z-0 pointer-events-none;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
+/* ── Status Badge (top-left live indicator) ── */
+.hero-status-badge {
+  @apply inline-flex items-center gap-2
+         px-3 py-1 border border-primary/30 bg-primary/5
+         rounded-sm mb-10;
+}
+.hero-status-badge-text {
+  @apply text-xs font-mono tracking-widest text-primary uppercase;
+}
+
+/* ── Animated Headline ── */
+.hero-headline {
+  @apply text-[2.8rem] sm:text-7xl md:text-[7rem]
+         font-heading font-bold uppercase leading-[0.88]
+         tracking-tighter mb-6 sm:mb-8;
+}
+/* Each word slides up from below in sequence */
+.hero-headline-word-wrapper {
+  @apply inline-block overflow-hidden mr-2 sm:mr-4;
+}
+.hero-headline-word {
+  @apply inline-block;
+}
+/* Third word: cyan gradient fill */
+.hero-headline-word--accent {
+  @apply text-transparent bg-clip-text;
+  background-image: linear-gradient(
+    to right,
+    hsl(var(--primary)),
+    rgb(103, 232, 249),
+    rgb(59, 130, 246)
+  );
+}
+
+/* ── Sub-headline ── */
+.hero-subline {
+  @apply text-base sm:text-xl md:text-2xl text-muted-foreground
+         font-sans max-w-2xl mb-8 sm:mb-12
+         border-l-2 border-primary pl-4 sm:pl-6;
+}
+
+/* ── CTA Button Group ── */
+.hero-cta-group {
+  @apply flex flex-wrap gap-4;
+}
+
+/* ── Scroll Indicator ── */
+.hero-scroll-indicator {
+  @apply absolute bottom-8 left-1/2 -translate-x-1/2 z-10
+         flex flex-col items-center gap-2;
+}
+.hero-scroll-indicator-line {
+  @apply w-px h-10;
+  background: linear-gradient(to bottom, transparent, hsl(var(--primary)));
+}
+.hero-scroll-indicator-label {
+  @apply text-xs font-mono uppercase tracking-widest;
+  color: hsl(var(--primary) / 0.6);
+}
+
+
+/* ==========================================================================
+  13. STAT STRIP SECTION
+   Four animated count-up KPI stats in a horizontal band.
+   ========================================================================== */
+
+.stat-strip-section {
+  @apply border-y border-border bg-card/50 backdrop-blur-md relative z-20 overflow-hidden;
+}
+
+/* Animated gradient sweep behind the stats */
+.stat-strip-gradient-sweep {
+  @apply absolute inset-0;
+  background: linear-gradient(
+    to right,
+    hsl(var(--primary) / 0.05),
+    transparent,
+    hsl(var(--primary) / 0.05)
+  );
+  background-size: 200% 100%;
+}
+
+/* 2-col on mobile, 4-col on desktop, with dividers between columns */
+.stat-strip-grid {
+  @apply grid grid-cols-2 md:grid-cols-4
+         gap-x-4 gap-y-8 md:gap-8
+         md:divide-x md:divide-border/50;
+}
+
+/* Individual stat */
+.stat-item  { @apply text-center px-4; }
+.stat-value { @apply text-3xl md:text-4xl font-mono font-bold text-foreground mb-2; }
+.stat-label { @apply text-xs font-heading uppercase tracking-widest text-muted-foreground; }
+
+
+/* ==========================================================================
+  14. BENTO GRID SECTION
+   Asymmetric 3-cell hardware category card grid.
+   ========================================================================== */
+
+.bento-grid-section {
+  @apply py-14 sm:py-24 relative z-20;
+}
+
+/* Header: title left, "View All" link right */
+.bento-grid-header {
+  @apply flex items-end justify-between mb-12;
+}
+
+.bento-grid-view-all-link {
+  @apply hidden md:flex items-center gap-2
+         text-primary font-mono text-sm hover:underline;
+}
+
+/* Auto-rows grid — tall on desktop, normal on mobile */
+.bento-grid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-4
+         auto-rows-[220px] md:auto-rows-[300px];
+}
+
+/* ── Bento Card ── */
+/* Block link fills its grid cell completely */
+.bento-card {
+  @apply block w-full h-full relative overflow-hidden
+         border border-border rounded-sm bg-card
+         hover:border-primary/60 transition-colors;
+}
+
+/* Category image — blends into bg at rest, full colour on hover */
+.bento-card-image {
+  @apply absolute inset-0 w-full h-full object-cover
+         mix-blend-luminosity opacity-60 transition-all duration-700;
+}
+.bento-card:hover .bento-card-image {
+  mix-blend-mode: normal;
+}
+
+/* Radial glow placeholder for cards without a real image */
+.bento-card-gradient-placeholder {
+  @apply absolute inset-0 transition-all;
+  background: radial-gradient(
+    circle at top right,
+    rgba(0, 240, 255, 0.1),
+    transparent 70%
+  );
+}
+.bento-card:hover .bento-card-gradient-placeholder {
+  background: radial-gradient(
+    circle at top right,
+    rgba(0, 240, 255, 0.2),
+    transparent 70%
+  );
+}
+
+/* Dark gradient so text stays legible over any image */
+.bento-card-overlay {
+  @apply absolute inset-0;
+  background: linear-gradient(
+    to top,
+    hsl(var(--background) / 0.9) 0%,
+    hsl(var(--background) / 0.2) 50%,
+    transparent 100%
+  );
+}
+
+/* Text block pinned to bottom-left of each card */
+.bento-card-content {
+  @apply absolute bottom-6 left-6;
+}
+
+/* Fallback icon (shown when no image is provided) */
+.bento-card-icon {
+  @apply w-8 h-8 text-muted-foreground mb-3 transition-colors;
+}
+.bento-card:hover .bento-card-icon {
+  @apply text-primary;
+}
+
+/* Card title */
+.bento-card-title {
+  @apply text-2xl font-heading font-bold uppercase mb-1 transition-colors;
+}
+.bento-card:hover .bento-card-title {
+  @apply text-primary;
+}
+.bento-card-title--large {
+  @apply text-4xl;
+}
+
+/* Card sub-label */
+.bento-card-subtitle {
+  @apply text-muted-foreground font-mono text-xs;
+}
+
+/* Corner chevron indicator that appears on hover */
+.bento-card-corner-indicator {
+  @apply absolute top-4 right-4 w-6 h-6
+         border border-transparent rounded-sm transition-colors;
+}
+.bento-card:hover .bento-card-corner-indicator {
+  @apply border-primary/50;
+}
+.bento-card-corner-icon {
+  @apply w-4 h-4 text-transparent m-0.5 transition-colors;
+}
+.bento-card:hover .bento-card-corner-icon {
+  color: hsl(var(--primary) / 0.8);
+}
+
+
+/* ==========================================================================
+  15. MANIFESTO STRIP SECTION
+   Full-width infinite marquee of brand slogans.
+   Speed controlled via --marquee-speed on .marquee-ltr.
+   ========================================================================== */
+
+.manifesto-strip-section {
+  @apply py-16 border-y border-border overflow-hidden;
+}
+
+/* Outer track — hover-pause is tied to `.marquee-track` in §6 */
+.manifesto-marquee-track {
+  /* inherits the .marquee-track hover-pause behaviour */
+}
+
+/* Inner scrolling row with fixed speed */
+.manifesto-marquee-inner {
+  --marquee-speed: 20s;
+  @apply flex whitespace-nowrap;
+}
+
+/* Individual phrase */
+.manifesto-phrase {
+  @apply font-heading font-black text-3xl md:text-5xl
+         uppercase tracking-[-0.02em] px-6
+         text-foreground/30;
+}
+
+/* Decorative separator between phrases */
+.manifesto-phrase-separator {
+  @apply text-primary/50 mx-4 select-none;
+}
+
+
+/* ==========================================================================
+  16. TESTIMONIALS SECTION
+   Two-row infinite marquee: customer quotes + platform feature highlights.
+   ========================================================================== */
+
+.testimonials-section {
+  @apply py-24 overflow-hidden;
+}
+
+/* ── Marquee Row Wrapper ── */
+/* Overflow hidden + relative so the fade overlays position correctly */
+.marquee-row-wrapper {
+  @apply overflow-hidden relative;
+}
+.marquee-row-wrapper + .marquee-row-wrapper {
+  @apply mt-4;
+}
+
+/* Left-edge fade mask */
+.marquee-row-fade-left {
+  @apply pointer-events-none absolute inset-y-0 left-0 w-20 z-10;
+  background: linear-gradient(to right, hsl(var(--background)), transparent);
+}
+
+/* Right-edge fade mask */
+.marquee-row-fade-right {
+  @apply pointer-events-none absolute inset-y-0 right-0 w-20 z-10;
+  background: linear-gradient(to left, hsl(var(--background)), transparent);
+}
+
+/* ── Testimonial Card ── */
+.testimonial-card {
+  @apply w-[340px] shrink-0 border border-border bg-card/60
+         rounded-sm p-5 mx-3 relative overflow-hidden
+         hover:border-primary/40 transition-colors
+         flex flex-col;
+}
+/* Cyan glow overlay — fades in on hover */
+.testimonial-card-hover-glow {
+  @apply absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none;
+  background: linear-gradient(
+    to bottom right,
+    hsl(var(--primary) / 0.05),
+    transparent
+  );
+}
+.testimonial-card:hover .testimonial-card-hover-glow {
+  @apply opacity-100;
+}
+/* Zap-icon star rating */
+.testimonial-card-rating {
+  @apply flex items-center gap-1 mb-3;
+}
+/* Quote body text */
+.testimonial-card-quote {
+  @apply font-sans text-xs text-muted-foreground leading-relaxed mb-5 flex-1;
+}
+/* Footer: author name + tier badge */
+.testimonial-card-author-row {
+  @apply flex items-center justify-between mt-auto;
+}
+.testimonial-card-author-name {
+  @apply font-mono text-xs font-bold;
+}
+.testimonial-card-author-tier {
+  @apply font-mono text-[10px] text-muted-foreground uppercase;
+}
+/* Small tier-coloured shield badge */
+.testimonial-card-tier-badge {
+  @apply w-7 h-7 rounded-sm border flex items-center justify-center;
+}
+
+/* ── Upgrade / Feature Card ── */
+.upgrade-card {
+  @apply w-[340px] shrink-0
+         border border-primary/20 bg-primary/5
+         rounded-sm p-5 mx-3 relative overflow-hidden
+         hover:border-primary/50 transition-colors
+         flex flex-col;
+}
+.upgrade-card-hover-glow {
+  @apply absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none;
+  background: linear-gradient(
+    to bottom right,
+    hsl(var(--primary) / 0.08),
+    transparent
+  );
+}
+.upgrade-card:hover .upgrade-card-hover-glow {
+  @apply opacity-100;
+}
+.upgrade-card-tag-row { @apply mb-3; }
+.upgrade-card-tag {
+  @apply font-mono text-[10px] uppercase tracking-widest text-primary
+         border border-primary/30 bg-primary/10 px-2 py-0.5 rounded-sm;
+}
+.upgrade-card-title {
+  @apply font-heading font-bold text-sm uppercase tracking-tight
+         text-foreground mb-2;
+}
+.upgrade-card-description {
+  @apply font-sans text-xs text-muted-foreground leading-relaxed flex-1;
+}
+/* Horizontal accent line at the bottom of each card */
+.upgrade-card-divider {
+  @apply mt-4 h-px;
+  background: linear-gradient(to right, hsl(var(--primary) / 0.3), transparent);
+}
+
+
+/* ==========================================================================
+  17. FEATURED PRODUCTS SECTION
+   "New Acquisitions" 3-column product grid.
+   ========================================================================== */
+
+.featured-products-section {
+  @apply py-24 relative z-20;
+}
+
+/* Header: heading left, "View All" right */
+.featured-products-header {
+  @apply flex items-end justify-between mb-12;
+}
+
+.featured-products-view-all-link {
+  @apply hidden md:flex items-center gap-2
+         text-primary font-mono text-sm hover:underline;
+}
+
+/* Responsive product card grid */
+.featured-products-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+
+/* ==========================================================================
+  18. LOADING SCREEN COMPONENT
+   Fullscreen boot sequence shown on first app load.
+   ========================================================================== */
+
+/* Cyan pixel grid overlay — replaces the inline backgroundImage style */
+.loading-screen-grid-overlay {
+  @apply absolute inset-0 pointer-events-none;
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.025) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Logo wordmark tight tracking — replaces letterSpacing: "-0.02em" inline style */
+.loading-screen-logo-wordmark {
+  letter-spacing: -0.02em;
 }

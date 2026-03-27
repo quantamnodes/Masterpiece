@@ -72,13 +72,7 @@ export default function Platinum() {
             animate={{ top: ["0%", "100%"] }}
             transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
           />
-          <div
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage: "linear-gradient(rgba(0,240,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,0.06) 1px, transparent 1px)",
-              backgroundSize: "60px 60px",
-            }}
-          />
+          <div className="absolute inset-0 opacity-30 loading-screen-grid-overlay" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">

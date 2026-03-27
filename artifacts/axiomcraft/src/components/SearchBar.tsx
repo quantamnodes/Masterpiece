@@ -214,11 +214,10 @@ export function SearchBar({ onClose }: { onClose?: () => void }) {
 
         {/* Animated scan line */}
         <motion.div
-          className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent"
+          className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent origin-left"
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: query ? 1 : 0, opacity: query ? 1 : 0 }}
           transition={{ duration: 0.3 }}
-          style={{ transformOrigin: "left" }}
         />
       </form>
 

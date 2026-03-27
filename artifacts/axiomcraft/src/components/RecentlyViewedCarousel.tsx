@@ -23,7 +23,7 @@ export function RecentlyViewedCarousel() {
           </Link>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: "none" as const }}>
           <AnimatePresence initial={false}>
             {items.map((item, i) => {
               const price = item.salePrice ? parseFloat(item.salePrice) : parseFloat(item.basePrice);
