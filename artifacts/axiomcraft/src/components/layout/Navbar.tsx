@@ -175,7 +175,6 @@ function UserMenu() {
         className={`navbar-user-trigger ${tierConfig.color}`}
       >
         <User className="w-5 h-5" />
-        <span className="hidden md:block">{user.username}</span>
       </button>
 
       {/* ── Profile Popup ── */}
