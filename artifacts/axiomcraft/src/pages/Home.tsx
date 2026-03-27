@@ -109,7 +109,7 @@ function TestimonialsCarousel() {
       <MarqueeTrack
         items={ALL_TESTIMONIALS}
         direction={1}
-        speed={45}
+        speed={90}
         renderItem={(item, key) => {
           const t = item as typeof ALL_TESTIMONIALS[0];
           return <TestimonialCard key={key} t={t} />;
@@ -118,7 +118,7 @@ function TestimonialsCarousel() {
       <MarqueeTrack
         items={UPGRADE_CARDS}
         direction={-1}
-        speed={38}
+        speed={75}
         renderItem={(item, key) => {
           const u = item as typeof UPGRADE_CARDS[0];
           return <UpgradeCard key={key} u={u} />;
