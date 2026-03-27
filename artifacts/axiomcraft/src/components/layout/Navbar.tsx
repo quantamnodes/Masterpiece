@@ -355,7 +355,7 @@ export function Navbar() {
               {isOwner(user) && (
                 <>
                   <span className="w-px h-4 bg-border/60 mx-1 shrink-0" aria-hidden />
-                  <DropdownMenu label="Dev Mode" icon={Terminal}>
+                  <DropdownMenu label="Dev Mode">
                     <Link to="/dashboard" className="navbar-dropdown-item-icon">
                       <Layers className="w-4 h-4 text-primary shrink-0" />
                       <div>
