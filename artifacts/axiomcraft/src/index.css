@@ -883,8 +883,8 @@
 
 /* Individual phrase */
 .manifesto-phrase {
-  @apply font-heading font-black text-3xl md:text-5xl
-         uppercase tracking-[-0.02em] px-6
+  @apply font-heading font-black text-base md:text-lg
+         uppercase tracking-widest px-6
          text-foreground/30;
 }
 
