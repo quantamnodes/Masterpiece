@@ -52,7 +52,7 @@ export function CurrencySelector() {
             transition={{ duration: 0.15 }}
             className="absolute right-0 top-full mt-1 w-52 bg-card border border-border rounded-sm shadow-2xl z-[999] overflow-hidden"
           >
-            <div className="max-h-72 overflow-y-auto">
+            <div className="max-h-72 overflow-y-auto scrollbar-dark">
               <div className="px-3 py-2 text-[10px] font-mono text-muted-foreground/60 uppercase tracking-widest">
                 Popular
               </div>

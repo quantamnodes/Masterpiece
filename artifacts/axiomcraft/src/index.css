@@ -1075,3 +1075,30 @@
     transition: none;
   }
 }
+
+/* ==========================================================================
+   Section 20 — Custom dark scrollbar
+   ========================================================================== */
+
+.scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 240, 255, 0.18) transparent;
+}
+
+.scrollbar-dark::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 255, 0.18);
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.45);
+}
