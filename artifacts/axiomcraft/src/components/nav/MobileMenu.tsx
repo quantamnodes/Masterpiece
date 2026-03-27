@@ -20,7 +20,7 @@
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Search, Wrench, ArrowRight, Tag, User, Heart, Layers, Building2, Crown,
+  Search, Wrench, ArrowRight, Tag, User, Heart, Layers, Building2, Crown, SlidersHorizontal, Terminal,
 } from "lucide-react";
 import { isOwner, isManager, type UserProfile } from "@/store/user-store";
 
@@ -115,11 +115,20 @@ export function MobileMenu({ isOpen, user, onOpenSearch }: MobileMenuProps) {
               <Heart      className="w-6 h-6" /> Wishlist
             </Link>
 
-            {/* ── Role-Gated Links ── */}
+            {/* ── Dev Mode (Owner) ── */}
             {isOwner(user) && (
-              <Link to="/dashboard" className="mobile-menu-icon-link mobile-menu-icon-link--primary">
-                <Layers   className="w-6 h-6" /> Dashboard
-              </Link>
+              <>
+                <div className="flex items-center gap-2 pt-2 pb-1">
+                  <Terminal className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-primary">Dev Mode</span>
+                </div>
+                <Link to="/dashboard" className="mobile-menu-icon-link mobile-menu-icon-link--primary">
+                  <Layers className="w-6 h-6" /> Dashboard
+                </Link>
+                <Link to="/admin/gateways" className="mobile-menu-icon-link mobile-menu-icon-link--primary">
+                  <SlidersHorizontal className="w-6 h-6" /> Gateways
+                </Link>
+              </>
             )}
             {isManager(user) && (
               <Link to="/manager"   className="mobile-menu-icon-link mobile-menu-icon-link--primary">

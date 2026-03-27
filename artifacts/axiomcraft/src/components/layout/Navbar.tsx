@@ -23,7 +23,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search,
   Crown, Tag, Wrench, ArrowRight, Star, LogOut, Heart,
-  Layers, Building2, SlidersHorizontal,
+  Layers, Building2, SlidersHorizontal, Terminal,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -351,33 +351,38 @@ export function Navbar() {
                 Contact
               </Link>
 
-              {/* Role-gated admin links — separated by a hairline divider */}
-              {(isOwner(user) || isManager(user)) && (
-                <span className="w-px h-4 bg-border/60 mx-1 shrink-0" aria-hidden />
-              )}
+              {/* Dev Mode dropdown — owner only */}
               {isOwner(user) && (
                 <>
-                  <Link
-                    to="/dashboard"
-                    className={`navbar-role-link ${isActivePath("/dashboard") ? "navbar-role-link--active" : ""}`}
-                  >
-                    <Layers className="w-3.5 h-3.5" /> Dashboard
-                  </Link>
-                  <Link
-                    to="/admin/gateways"
-                    className={`navbar-role-link ${isActivePath("/admin/gateways") ? "navbar-role-link--active" : ""}`}
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" /> Gateways
-                  </Link>
+                  <span className="w-px h-4 bg-border/60 mx-1 shrink-0" aria-hidden />
+                  <DropdownMenu label="Dev Mode" icon={Terminal}>
+                    <Link to="/dashboard" className="navbar-dropdown-item-icon">
+                      <Layers className="w-4 h-4 text-primary shrink-0" />
+                      <div>
+                        <p className="navbar-dropdown-item-label">Dashboard</p>
+                        <p className="navbar-dropdown-item-desc">Owner control panel</p>
+                      </div>
+                    </Link>
+                    <Link to="/admin/gateways" className="navbar-dropdown-item-icon">
+                      <SlidersHorizontal className="w-4 h-4 text-primary shrink-0" />
+                      <div>
+                        <p className="navbar-dropdown-item-label">Gateways</p>
+                        <p className="navbar-dropdown-item-desc">Provider switchboard</p>
+                      </div>
+                    </Link>
+                  </DropdownMenu>
                 </>
               )}
               {isManager(user) && (
-                <Link
-                  to="/manager"
-                  className={`navbar-role-link ${isActivePath("/manager") ? "navbar-role-link--active" : ""}`}
-                >
-                  <Building2 className="w-3.5 h-3.5" /> My Branch
-                </Link>
+                <>
+                  <span className="w-px h-4 bg-border/60 mx-1 shrink-0" aria-hidden />
+                  <Link
+                    to="/manager"
+                    className={`navbar-role-link ${isActivePath("/manager") ? "navbar-role-link--active" : ""}`}
+                  >
+                    <Building2 className="w-3.5 h-3.5" /> My Branch
+                  </Link>
+                </>
               )}
             </nav>
 
