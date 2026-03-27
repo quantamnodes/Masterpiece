@@ -386,7 +386,7 @@
 
 /* ── Desktop Navigation ── */
 .navbar-desktop-nav {
-  @apply hidden lg:flex items-center gap-6;
+  @apply hidden lg:flex items-center gap-7;
 }
 .navbar-nav-link {
   @apply text-sm font-medium tracking-wide uppercase
@@ -437,7 +437,7 @@
 
 /* ── Right-Side Action Cluster ── */
 .navbar-actions {
-  @apply flex items-center gap-3;
+  @apply flex items-center gap-4;
 }
 
 /* Search pill button (desktop) */

@@ -351,7 +351,10 @@ export function Navbar() {
                 Contact
               </Link>
 
-              {/* Role-gated admin links */}
+              {/* Role-gated admin links — separated by a hairline divider */}
+              {(isOwner(user) || isManager(user)) && (
+                <span className="w-px h-4 bg-border/60 mx-1 shrink-0" aria-hidden />
+              )}
               {isOwner(user) && (
                 <>
                   <Link
