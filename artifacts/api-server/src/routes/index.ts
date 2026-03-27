@@ -18,6 +18,7 @@ import orderTrackingRouter from "./order-tracking";
 import localizationRouter from "./localization";
 import checkoutRouter from "./checkout";
 import webhookRouter from "./webhook";
+import contactRouter from "./contact";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(orderTrackingRouter);
 router.use(localizationRouter);
 router.use(checkoutRouter);
 router.use(webhookRouter);
+router.use(contactRouter);
 
 export default router;

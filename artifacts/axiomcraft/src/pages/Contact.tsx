@@ -1,29 +1,28 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
 import { Mail, Phone, MapPin, Send, CheckCircle, Cpu, Zap, Shield } from "lucide-react";
 
-const contactInfo = [
-  {
-    icon: Mail,
-    label: "TRANSMISSION",
-    value: "ops@axiomcraft.systems",
-    sub: "Response within 4 hours",
-  },
-  {
-    icon: Phone,
-    label: "DIRECT LINE",
-    value: "+1 (800) AXIOM-00",
-    sub: "Mon–Fri, 08:00–22:00 UTC",
-  },
-  {
-    icon: MapPin,
-    label: "COORDINATES",
-    value: "Austin, TX 78701",
-    sub: "Hardware Innovation District",
-  },
-];
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.BASE_URL}api`;
+
+interface ContactSettings {
+  email:      string;
+  emailSub:   string;
+  phone:      string;
+  phoneSub:   string;
+  address:    string;
+  addressSub: string;
+}
+
+const DEFAULTS: ContactSettings = {
+  email:      "ops@axiomcraft.systems",
+  emailSub:   "Response within 4 hours",
+  phone:      "+1 (800) AXIOM-00",
+  phoneSub:   "Mon–Fri, 08:00–22:00 UTC",
+  address:    "Austin, TX 78701",
+  addressSub: "Hardware Innovation District",
+};
 
 const reasons = [
   "Pre-sales / configuration advice",
@@ -54,10 +53,11 @@ function GridBackground() {
   );
 }
 
-function ContactCard({ info, index }: { info: typeof contactInfo[0]; index: number }) {
+function ContactCard({ icon: Icon, label, value, sub, index }: {
+  icon: React.ElementType; label: string; value: string; sub: string; index: number;
+}) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
-  const Icon = info.icon;
 
   return (
     <motion.div
@@ -76,32 +76,58 @@ function ContactCard({ info, index }: { info: typeof contactInfo[0]; index: numb
       <div className="w-10 h-10 border border-primary/30 bg-primary/10 flex items-center justify-center rounded-sm mb-4 group-hover:border-primary transition-colors">
         <Icon className="w-5 h-5 text-primary" />
       </div>
-      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1">{info.label}</p>
-      <p className="font-heading font-bold text-lg text-foreground mb-1">{info.value}</p>
-      <p className="font-mono text-xs text-muted-foreground">{info.sub}</p>
+      <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
+      <p className="font-heading font-bold text-lg text-foreground mb-1">{value}</p>
+      <p className="font-mono text-xs text-muted-foreground">{sub}</p>
     </motion.div>
   );
 }
 
 export default function Contact() {
-  const [formState, setFormState] = useState({
-    name: "",
-    email: "",
-    reason: "",
-    message: "",
-  });
+  const [settings, setSettings] = useState<ContactSettings>(DEFAULTS);
+  const [formState, setFormState] = useState({ name: "", email: "", reason: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const formRef = useRef(null);
   const formInView = useInView(formRef, { once: true });
 
+  useEffect(() => {
+    fetch(`${API}/contact-settings`)
+      .then((r) => r.json())
+      .then((data) => setSettings({ ...DEFAULTS, ...data }))
+      .catch(() => {});
+  }, []);
+
+  const contactCards = [
+    { icon: Mail,  label: "TRANSMISSION", value: settings.email,   sub: settings.emailSub   },
+    { icon: Phone, label: "DIRECT LINE",  value: settings.phone,   sub: settings.phoneSub   },
+    { icon: MapPin,label: "COORDINATES",  value: settings.address, sub: settings.addressSub },
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setSubmitting(false);
-    setSubmitted(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formState),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || "Transmission failed. Please try again.");
+      } else {
+        setSubmitted(true);
+      }
+    } catch {
+      setError("Transmission failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const containerVariants = {
@@ -162,8 +188,8 @@ export default function Contact() {
       <section className="py-16 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {contactInfo.map((info, i) => (
-              <ContactCard key={i} info={info} index={i} />
+            {contactCards.map((card, i) => (
+              <ContactCard key={i} {...card} index={i} />
             ))}
           </div>
         </div>
@@ -203,7 +229,7 @@ export default function Contact() {
                   <h3 className="text-2xl font-heading font-bold uppercase mb-3">Transmission Received</h3>
                   <p className="text-muted-foreground font-mono text-sm mb-8">
                     Your message has been routed to our engineering team.<br />
-                    Expect a response within 4 hours.
+                    Expect a response within {settings.emailSub.replace("Response within ", "")}.
                   </p>
                   <button
                     onClick={() => { setSubmitted(false); setFormState({ name: "", email: "", reason: "", message: "" }); }}
@@ -216,8 +242,8 @@ export default function Contact() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {[
-                      { name: "name", label: "Operator Name", placeholder: "Your full name", type: "text" },
-                      { name: "email", label: "Secure Channel", placeholder: "your@email.com", type: "email" },
+                      { name: "name",  label: "Operator Name",  placeholder: "Your full name",   type: "text"  },
+                      { name: "email", label: "Secure Channel", placeholder: "your@email.com",   type: "email" },
                     ].map((field) => (
                       <motion.div key={field.name} variants={itemVariants}>
                         <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
@@ -265,6 +291,16 @@ export default function Contact() {
                       className="w-full bg-card border border-border rounded-sm px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary focus:shadow-[0_0_0_1px_rgba(0,240,255,0.3)] transition-all resize-none"
                     />
                   </motion.div>
+
+                  {error && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="font-mono text-xs text-red-400 border border-red-400/30 bg-red-400/5 px-4 py-3 rounded-sm"
+                    >
+                      {error}
+                    </motion.p>
+                  )}
 
                   <motion.div variants={itemVariants}>
                     <motion.button

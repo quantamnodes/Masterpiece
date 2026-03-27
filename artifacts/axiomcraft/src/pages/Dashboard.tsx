@@ -13,7 +13,7 @@ import {
   ChevronDown, ChevronUp, Search, Package, DollarSign, ImageIcon, Layers,
   Building2, Key, Copy, ToggleLeft, ToggleRight, MapPin, Phone, User,
   BarChart3, TrendingUp, Activity, Star, SlidersHorizontal, Boxes,
-  Upload, Loader2,
+  Upload, Loader2, Mail, MessageSquare, Inbox, Eye, EyeOff,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -393,7 +393,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock" | "categories">("overview");
+  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock" | "categories" | "contact">("overview");
 
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
@@ -431,6 +431,20 @@ export default function Dashboard() {
   const [catSaving, setCatSaving] = useState(false);
   const [confirmDeleteCat, setConfirmDeleteCat] = useState<number | null>(null);
   const [catAutoSlug, setCatAutoSlug] = useState(true);
+
+  // Contact settings state
+  const [contactForm, setContactForm] = useState({
+    email: "", emailSub: "", phone: "", phoneSub: "", address: "", addressSub: "",
+    smtpHost: "", smtpPort: "587", smtpUser: "", smtpPass: "", smtpFrom: "", directLineEmail: "",
+  });
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactSaving, setContactSaving] = useState(false);
+  const [showSmtpPass, setShowSmtpPass] = useState(false);
+  const [contactMessages, setContactMessages] = useState<Array<{
+    id: number; name: string; email: string; reason: string; message: string; createdAt: string;
+  }>>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [expandedMessage, setExpandedMessage] = useState<number | null>(null);
 
   // Sales data state
   const [salesData, setSalesData] = useState<{
@@ -537,6 +551,72 @@ export default function Dashboard() {
   useEffect(() => {
     if (tab === "stock" && selectedBranchId) fetchBranchProducts(selectedBranchId);
   }, [tab, selectedBranchId, fetchBranchProducts]);
+
+  const fetchContactSettings = useCallback(async () => {
+    setContactLoading(true);
+    try {
+      const res = await fetch(`${API}/contact-settings/admin`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setContactForm({
+          email:           data.email           || "",
+          emailSub:        data.emailSub        || "",
+          phone:           data.phone           || "",
+          phoneSub:        data.phoneSub        || "",
+          address:         data.address         || "",
+          addressSub:      data.addressSub      || "",
+          smtpHost:        data.smtpHost        || "",
+          smtpPort:        data.smtpPort        || "587",
+          smtpUser:        data.smtpUser        || "",
+          smtpPass:        data.smtpPass        || "",
+          smtpFrom:        data.smtpFrom        || "",
+          directLineEmail: data.directLineEmail || "",
+        });
+      }
+    } finally {
+      setContactLoading(false);
+    }
+  }, []);
+
+  const fetchContactMessages = useCallback(async () => {
+    setMessagesLoading(true);
+    try {
+      const res = await fetch(`${API}/contact-messages`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setContactMessages(data.messages || []);
+      }
+    } finally {
+      setMessagesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === "contact") {
+      fetchContactSettings();
+      fetchContactMessages();
+    }
+  }, [tab, fetchContactSettings, fetchContactMessages]);
+
+  const handleContactSave = async () => {
+    setContactSaving(true);
+    try {
+      const res = await fetch(`${API}/contact-settings`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contactForm),
+      });
+      if (res.ok) {
+        toast({ title: "Contact settings saved", description: "Changes are now live on the Contact page." });
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: j.error || "Failed to save", variant: "destructive" });
+      }
+    } finally {
+      setContactSaving(false);
+    }
+  };
 
   const handleCreate = async (data: FormData) => {
     setSaving(true);
@@ -814,6 +894,7 @@ export default function Dashboard() {
             { id: "codes", label: "Access Codes", icon: Key },
             { id: "stock", label: "Branch Stock", icon: SlidersHorizontal },
             { id: "categories", label: "Categories", icon: Layers },
+            { id: "contact",    label: "Contact",    icon: MessageSquare },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -1657,6 +1738,161 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ===================== CONTACT TAB ===================== */}
+        {tab === "contact" && (
+          <div className="space-y-8">
+            {contactLoading ? (
+              <div className="flex items-center gap-3 py-12 justify-center text-muted-foreground font-mono text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading contact settings…
+              </div>
+            ) : (
+              <>
+                {/* ── Display Info ── */}
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="bg-card border border-border rounded-sm p-6">
+                  <h3 className="font-heading font-bold uppercase text-sm tracking-widest mb-5 flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-primary" /> Contact Display Info
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: "email",      label: "Transmission Email",  placeholder: "ops@axiomcraft.systems" },
+                      { key: "emailSub",   label: "Email Sub-text",      placeholder: "Response within 4 hours" },
+                      { key: "phone",      label: "Direct Line",         placeholder: "+1 (800) AXIOM-00" },
+                      { key: "phoneSub",   label: "Phone Sub-text",      placeholder: "Mon–Fri, 08:00–22:00 UTC" },
+                      { key: "address",    label: "Coordinates",         placeholder: "Austin, TX 78701" },
+                      { key: "addressSub", label: "Address Sub-text",    placeholder: "Hardware Innovation District" },
+                    ].map(({ key, label, placeholder }) => (
+                      <div key={key}>
+                        <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">{label}</label>
+                        <input
+                          type="text"
+                          value={contactForm[key as keyof typeof contactForm]}
+                          onChange={(e) => setContactForm((f) => ({ ...f, [key]: e.target.value }))}
+                          placeholder={placeholder}
+                          className="w-full bg-background border border-border rounded-sm px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* ── SMTP / Email Delivery ── */}
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="bg-card border border-border rounded-sm p-6">
+                  <h3 className="font-heading font-bold uppercase text-sm tracking-widest mb-1 flex items-center gap-2">
+                    <Inbox className="w-4 h-4 text-primary" /> Email Delivery (SMTP)
+                  </h3>
+                  <p className="font-mono text-xs text-muted-foreground mb-5">
+                    Configure SMTP to receive transmissions at both your email and direct line simultaneously.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">SMTP Host</label>
+                      <input type="text" value={contactForm.smtpHost} onChange={(e) => setContactForm((f) => ({ ...f, smtpHost: e.target.value }))} placeholder="smtp.gmail.com" className="w-full bg-background border border-border rounded-sm px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">SMTP Port</label>
+                      <input type="text" value={contactForm.smtpPort} onChange={(e) => setContactForm((f) => ({ ...f, smtpPort: e.target.value }))} placeholder="587" className="w-full bg-background border border-border rounded-sm px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">SMTP Username</label>
+                      <input type="text" value={contactForm.smtpUser} onChange={(e) => setContactForm((f) => ({ ...f, smtpUser: e.target.value }))} placeholder="your@email.com" className="w-full bg-background border border-border rounded-sm px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">SMTP Password</label>
+                      <div className="relative">
+                        <input type={showSmtpPass ? "text" : "password"} value={contactForm.smtpPass} onChange={(e) => setContactForm((f) => ({ ...f, smtpPass: e.target.value }))} placeholder="App password / secret" className="w-full bg-background border border-border rounded-sm px-3 py-2.5 pr-10 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+                        <button type="button" onClick={() => setShowSmtpPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          {showSmtpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">From Address</label>
+                      <input type="email" value={contactForm.smtpFrom} onChange={(e) => setContactForm((f) => ({ ...f, smtpFrom: e.target.value }))} placeholder="noreply@axiomcraft.systems" className="w-full bg-background border border-border rounded-sm px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+                    </div>
+                    <div>
+                      <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Direct Line Email</label>
+                      <input type="email" value={contactForm.directLineEmail} onChange={(e) => setContactForm((f) => ({ ...f, directLineEmail: e.target.value }))} placeholder="5551234567@txt.att.net" className="w-full bg-background border border-border rounded-sm px-3 py-2.5 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors" />
+                      <p className="font-mono text-[10px] text-muted-foreground mt-1">Email-to-SMS gateway for your carrier (e.g. number@vtext.com)</p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* ── Save Button ── */}
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="flex justify-end">
+                  <button
+                    onClick={handleContactSave}
+                    disabled={contactSaving}
+                    className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-mono text-sm uppercase tracking-widest hover:bg-primary/90 disabled:opacity-50 rounded-sm transition-colors"
+                  >
+                    {contactSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {contactSaving ? "Saving…" : "Save Settings"}
+                  </button>
+                </motion.div>
+
+                {/* ── Inbox ── */}
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-card border border-border rounded-sm p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <h3 className="font-heading font-bold uppercase text-sm tracking-widest flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-primary" /> Transmission Inbox
+                      <span className="ml-2 px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-sm font-mono text-[10px]">{contactMessages.length}</span>
+                    </h3>
+                    <button onClick={fetchContactMessages} disabled={messagesLoading} className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+                      {messagesLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Refresh
+                    </button>
+                  </div>
+
+                  {messagesLoading ? (
+                    <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground font-mono text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+                    </div>
+                  ) : contactMessages.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <Inbox className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="font-mono text-xs text-muted-foreground">No transmissions received yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {[...contactMessages].reverse().map((msg) => (
+                        <div key={msg.id} className="border border-border rounded-sm overflow-hidden">
+                          <button
+                            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                            onClick={() => setExpandedMessage(expandedMessage === msg.id ? null : msg.id)}
+                          >
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className="w-8 h-8 rounded-sm bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                                <User className="w-4 h-4 text-primary" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-mono text-sm text-foreground truncate">{msg.name}</p>
+                                <p className="font-mono text-xs text-muted-foreground truncate">{msg.email} · {msg.reason}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0 ml-4">
+                              <span className="font-mono text-[10px] text-muted-foreground hidden sm:block">
+                                {new Date(msg.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                              </span>
+                              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expandedMessage === msg.id ? "rotate-180" : ""}`} />
+                            </div>
+                          </button>
+                          {expandedMessage === msg.id && (
+                            <div className="px-4 pb-4 border-t border-border bg-background/50">
+                              <p className="font-mono text-xs text-muted-foreground mt-3 mb-1 uppercase tracking-widest">Message Payload</p>
+                              <p className="font-mono text-sm text-foreground whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                              <a href={`mailto:${msg.email}`} className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 border border-primary/30 text-primary font-mono text-xs uppercase hover:bg-primary/10 transition-colors rounded-sm">
+                                <Mail className="w-3.5 h-3.5" /> Reply
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              </>
+            )}
           </div>
         )}
 
