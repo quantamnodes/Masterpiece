@@ -6,7 +6,7 @@ import { useUserStore, isOwner } from "@/store/user-store";
 import { useToast } from "@/hooks/use-toast";
 import {
   Database, CreditCard, Eye, EyeOff, Save, ShieldCheck,
-  ChevronDown, CheckCircle2, Lock, Zap,
+  ChevronDown, CheckCircle2, Lock, Zap, Brain,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -32,6 +32,12 @@ interface PayFields {
   lemonsqueezy: { apiKey: string; webhookSecret: string };
   paypal: { clientId: string; secret: string };
   sslcommerz: { storeId: string; storePassword: string };
+}
+
+interface VisionFields {
+  geminiApiKey: string;
+  openaiApiKey: string;
+  fallbackOrder: string;
 }
 
 const DB_OPTIONS: { value: DbProvider; label: string; icon: string }[] = [
@@ -155,6 +161,12 @@ export default function GatewaySettings() {
     sslcommerz: { storeId: "", storePassword: "" },
   });
 
+  const [visionFields, setVisionFields] = useState<VisionFields>({
+    geminiApiKey: "",
+    openaiApiKey: "",
+    fallbackOrder: "openai",
+  });
+
   useEffect(() => {
     if (!user || !isOwner(user)) {
       navigate("/dashboard");
@@ -195,9 +207,15 @@ export default function GatewaySettings() {
 
     const config = {
       activeDatabase: dbProvider,
-      activePament: payProvider,
+      activePayment: payProvider,
+      visionFallbackOrder: visionFields.fallbackOrder,
       database: dbFields[dbProvider],
       payment: payFields[payProvider],
+      vision: {
+        geminiApiKey: visionFields.geminiApiKey ? "[REDACTED]" : "",
+        openaiApiKey: visionFields.openaiApiKey ? "[REDACTED]" : "",
+        fallbackOrder: visionFields.fallbackOrder,
+      },
     };
 
     console.log("[GatewaySettings] Saved configuration:", JSON.stringify(config, null, 2));
@@ -207,7 +225,7 @@ export default function GatewaySettings() {
       setSaved(true);
       toast({
         title: "Configuration saved",
-        description: `Active providers: ${DB_OPTIONS.find((d) => d.value === dbProvider)?.label} + ${PAY_OPTIONS.find((p) => p.value === payProvider)?.label}`,
+        description: `DB: ${DB_OPTIONS.find((d) => d.value === dbProvider)?.label} · Pay: ${PAY_OPTIONS.find((p) => p.value === payProvider)?.label} · Vision: ${visionFields.fallbackOrder}`,
       });
       setTimeout(() => setSaved(false), 2500);
     }, 800);
@@ -510,6 +528,66 @@ export default function GatewaySettings() {
           </section>
         </div>
 
+        {/* ── AI VISION PROVIDERS ──────────────────────────── */}
+        <section className="rounded-sm border border-border bg-card overflow-hidden">
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-border bg-[#09090B]">
+            <Brain className="w-4 h-4 text-primary/70 shrink-0" />
+            <div>
+              <h2 className="font-mono text-sm font-semibold text-foreground">
+                AI Vision Providers
+              </h2>
+              <p className="font-mono text-[11px] text-muted-foreground mt-0.5">
+                Used for image search. Providers are tried in fallback order.
+              </p>
+            </div>
+            <Lock className="w-3.5 h-3.5 text-primary/40 ml-auto shrink-0" />
+          </div>
+
+          <div className="p-8 space-y-6">
+            <PasswordInput
+              label="OpenAI API Key"
+              placeholder="sk-..."
+              value={visionFields.openaiApiKey}
+              onChange={(v) => setVisionFields((f) => ({ ...f, openaiApiKey: v }))}
+              hint="Maps to OPENAI_API_KEY · Model: gpt-4o-mini"
+            />
+
+            <PasswordInput
+              label="Google Gemini API Key"
+              placeholder="AIza..."
+              value={visionFields.geminiApiKey}
+              onChange={(v) => setVisionFields((f) => ({ ...f, geminiApiKey: v }))}
+              hint="Maps to GOOGLE_GEMINI_API_KEY · Model: gemini-1.5-flash"
+            />
+
+            <div>
+              <label className={LABEL}>Fallback Order</label>
+              <input
+                type="text"
+                className={INPUT}
+                placeholder="openai,google"
+                value={visionFields.fallbackOrder}
+                onChange={(e) =>
+                  setVisionFields((f) => ({ ...f, fallbackOrder: e.target.value }))
+                }
+              />
+              <p className="mt-1 font-mono text-[10px] text-muted-foreground/50">
+                Comma-separated. Maps to VISION_AI_FALLBACK_ORDER. If a provider
+                fails, the next is tried automatically.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-2 rounded-sm bg-background border border-border">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                VISION_AI_FALLBACK_ORDER=
+              </span>
+              <span className="font-mono text-xs text-primary">
+                {visionFields.fallbackOrder || "openai"}
+              </span>
+            </div>
+          </div>
+        </section>
+
         {/* ── SAVE BAR ─────────────────────────────────────── */}
         <div className="flex items-center justify-between gap-6 px-8 py-6 rounded-sm border border-border bg-card">
           <div className="flex items-center gap-3">
@@ -564,13 +642,20 @@ export default function GatewaySettings() {
           </div>
           <div className="p-8">
             <pre className="font-mono text-xs text-muted-foreground leading-6 overflow-x-auto whitespace-pre">
-{`# Switch providers by changing these two lines:
+{`# ── Provider Switches ───────────────────────────────────────────────────────
 ACTIVE_DATABASE=${dbProvider.padEnd(12)}  # postgresql | supabase | mongodb | firebase
 ACTIVE_PAYMENT=${payProvider.padEnd(13)}  # stripe | amarpay | lemonsqueezy | paypal | sslcommerz
 
+# ── Database ─────────────────────────────────────────────────────────────────
 ${dbProvider === "postgresql" ? `DATABASE_URL=postgresql://user:pass@host:5432/axiomcraft` : ""}${dbProvider === "supabase" ? `SUPABASE_URL=https://your-project.supabase.co\nSUPABASE_SERVICE_ROLE_KEY=your-service-role-key` : ""}${dbProvider === "mongodb" ? `MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/axiomcraft` : ""}${dbProvider === "firebase" ? `FIREBASE_PROJECT_ID=your-project-id\nFIREBASE_CLIENT_EMAIL=sa@project.iam.gserviceaccount.com\nFIREBASE_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----` : ""}
 
-${payProvider === "stripe" ? `STRIPE_SECRET_KEY=sk_live_...\nSTRIPE_WEBHOOK_SECRET=whsec_...` : ""}${payProvider === "amarpay" ? `AMARPAY_STORE_ID=your-store-id\nAMARPAY_SIGNATURE_KEY=your-signature-key` : ""}${payProvider === "lemonsqueezy" ? `LEMONSQUEEZY_API_KEY=eyJ...\nLEMONSQUEEZY_WEBHOOK_SECRET=wh_secret_...` : ""}${payProvider === "paypal" ? `PAYPAL_CLIENT_ID=AXbBv...\nPAYPAL_CLIENT_SECRET=EGPKr...` : ""}${payProvider === "sslcommerz" ? `SSLCOMMERZ_STORE_ID=your-store-id\nSSLCOMMERZ_STORE_PASSWORD=your-store-password` : ""}`}
+# ── Payment ──────────────────────────────────────────────────────────────────
+${payProvider === "stripe" ? `STRIPE_SECRET_KEY=sk_live_...\nSTRIPE_WEBHOOK_SECRET=whsec_...` : ""}${payProvider === "amarpay" ? `AMARPAY_STORE_ID=your-store-id\nAMARPAY_SIGNATURE_KEY=your-signature-key` : ""}${payProvider === "lemonsqueezy" ? `LEMONSQUEEZY_API_KEY=eyJ...\nLEMONSQUEEZY_WEBHOOK_SECRET=wh_secret_...` : ""}${payProvider === "paypal" ? `PAYPAL_CLIENT_ID=AXbBv...\nPAYPAL_CLIENT_SECRET=EGPKr...` : ""}${payProvider === "sslcommerz" ? `SSLCOMMERZ_STORE_ID=your-store-id\nSSLCOMMERZ_STORE_PASSWORD=your-store-password` : ""}
+
+# ── AI Vision ─────────────────────────────────────────────────────────────────
+VISION_AI_FALLBACK_ORDER=${visionFields.fallbackOrder || "openai"}   # comma-separated: openai | google
+OPENAI_API_KEY=sk-...                          # for gpt-4o-mini vision
+GOOGLE_GEMINI_API_KEY=AIza...                  # for gemini-1.5-flash vision`}
             </pre>
           </div>
         </section>

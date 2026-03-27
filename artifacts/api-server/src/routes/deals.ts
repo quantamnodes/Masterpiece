@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, productsTable } from "@workspace/db";
 import { isNotNull, sql } from "drizzle-orm";
+import { analyzeImageWithFallback } from "../services/vision/visionService";
 
 const router = Router();
 
@@ -85,33 +86,12 @@ router.post("/search/image", async (req, res) => {
     };
     if (!imageBase64) return res.status(400).json({ error: "No image provided" });
 
-    const { default: OpenAI } = await import("openai");
-    const openai = new OpenAI({
-      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
-      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://ai.replit.com/v1",
-    });
+    const VISION_PROMPT =
+      'Identify the PC hardware component in this image. Reply with JSON only (no markdown fences): {"productName":"best guess model name","keywords":["keyword1","keyword2","keyword3"],"category":"gpus|cpus|motherboards|memory|storage|psus|cooling|cases|peripherals|other"}. If this is not a PC component, reply: {"productName":"","keywords":[],"category":"other"}.';
 
-    const visionRes = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_completion_tokens: 300,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: `data:${mimeType};base64,${imageBase64}` },
-            },
-            {
-              type: "text",
-              text: 'Identify the PC hardware component in this image. Reply with JSON only (no markdown fences): {"productName":"best guess model name","keywords":["keyword1","keyword2","keyword3"],"category":"gpus|cpus|motherboards|memory|storage|psus|cooling|cases|peripherals|other"}. If this is not a PC component, reply: {"productName":"","keywords":[],"category":"other"}.',
-            },
-          ],
-        },
-      ],
-    });
-
-    const raw = (visionRes.choices[0]?.message?.content ?? "").trim();
+    const raw = (
+      await analyzeImageWithFallback(imageBase64, VISION_PROMPT, mimeType)
+    ).trim();
     let identified: { productName: string; keywords: string[]; category: string } = {
       productName: "",
       keywords: [],

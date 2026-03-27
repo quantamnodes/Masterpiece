@@ -1,0 +1,55 @@
+Act as a Principal Full-Stack Architect. I see you are planning to build the AI Vision image search feature. However, I absolutely DO NOT want to be locked into OpenAI, and I want a highly resilient system.
+
+We must apply the same Factory/Strategy Pattern we used for databases/payments, but this time we are adding an Automatic Fallback Pattern.
+
+Please build the new AI Vision service and update our Admin UI with the following requirements:
+
+PHASE 1: The Backend Fallback Architecture
+1. Environment Configuration (.env):
+
+Add keys for GOOGLE_GEMINI_API_KEY and OPENAI_API_KEY.
+
+Add a new variable: VISION_AI_FALLBACK_ORDER="google,openai" (This tells the system which order to attempt).
+
+2. The Vision Adapters (services/vision/):
+
+Create googleVisionAdapter.ts (using the @google/genai or standard Google API).
+
+Create openaiVisionAdapter.ts (using the openai SDK).
+
+Both must implement a standard async method: analyzeImage(imageBase64, prompt). The adapters must handle transforming the base64 string into whatever specific format their respective API requires.
+
+3. The Fallback Switchboard (services/vision/visionService.ts):
+
+Create a function analyzeImageWithFallback(imageBase64, prompt).
+
+It must read process.env.VISION_AI_FALLBACK_ORDER and split it into an array.
+
+Create a loop that tries the first provider (e.g., Google) inside a try/catch block.
+
+IF it succeeds, return the result.
+
+IF it fails (rate limit, out of credits, downtime), catch the error, log a warning ("Provider failed, falling back to next..."), and let the loop continue to the next provider.
+
+Throw a final error only if ALL providers in the array fail.
+
+PHASE 2: Update the Frontend Dashboard UI
+1. Update GatewaySettings Component:
+
+Open the existing Admin dashboard component where we manage Databases and Payments.
+
+Add a third, distinct section titled "AI Vision Providers".
+
+2. The AI UI Elements:
+
+Add a password-masked input for Google Gemini API Key.
+
+Add a password-masked input for OpenAI API Key.
+
+Add a standard text input labeled Fallback Order (placeholder: "google,openai") so the admin can easily swap who gets called first.
+
+Ensure the state management for these new inputs is wired up to the existing 'Save Configuration' button so they log out with the rest of the JSON settings.
+
+3. Implementation:
+
+Now, proceed with building your planned image search backend endpoint and frontend upload UI, but you must route the image processing through this new visionService.analyzeImageWithFallback() method. Do not call OpenAI directly in the route.
