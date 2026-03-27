@@ -9,6 +9,8 @@ import adminRouter from "./admin";
 import branchesRouter from "./branches";
 import accessCodesRouter from "./access-codes";
 import branchProductsRouter from "./branch-products";
+import restockRouter from "./restock";
+import userOrdersRouter from "./user-orders";
 
 const router: IRouter = Router();
 
@@ -22,5 +24,7 @@ router.use(adminRouter);
 router.use(branchesRouter);
 router.use(accessCodesRouter);
 router.use(branchProductsRouter);
+router.use(restockRouter);
+router.use(userOrdersRouter);
 
 export default router;

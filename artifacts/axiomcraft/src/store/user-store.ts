@@ -13,6 +13,7 @@ export interface UserProfile {
   tier: Tier;
   totalSpent: number;
   purchaseCount: number;
+  loyaltyPoints: number;
 }
 
 export function isOwner(user: UserProfile | null): boolean {

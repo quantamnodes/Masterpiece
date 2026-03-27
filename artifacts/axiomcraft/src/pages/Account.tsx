@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
 import { useUserStore, TIER_CONFIG, isOwner, isManager, isStaff, type Tier } from "@/store/user-store";
-import { User, Mail, Lock, LogOut, Star, Zap, ShieldCheck, Crown, ChevronRight, Building2, Key } from "lucide-react";
+import { User, Mail, Lock, LogOut, Star, Zap, ShieldCheck, Crown, ChevronRight, Building2, Key, Package, Gift, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const API_BASE = (() => {
@@ -60,12 +60,33 @@ function TierProgress({ tier, totalSpent }: { tier: Tier; totalSpent: number }) 
   );
 }
 
+interface OrderRecord {
+  id: number;
+  totalAmount: string;
+  itemCount: number;
+  status: string;
+  fulfillmentType: string;
+  deliveryFee: string;
+  createdAt: string;
+}
+
 function ProfileView() {
   const { user, logout, setUser } = useUserStore();
   const [claimCode, setClaimCode] = useState("");
   const [claimError, setClaimError] = useState("");
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimLoading, setClaimLoading] = useState(false);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    setOrdersLoading(true);
+    apiFetch("/orders/my")
+      .then((d) => setOrders(d.orders || []))
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false));
+  }, [user?.id]);
 
   const handleClaimAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +133,7 @@ function ProfileView() {
           <TierBadge tier={user.tier as Tier} />
         </div>
 
-        <div className="grid grid-cols-3 gap-4 py-6 border-y border-border mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-y border-border mb-6">
           <div className="text-center">
             <div className="text-2xl font-mono font-bold text-foreground">{user.purchaseCount}</div>
             <div className="text-xs font-mono uppercase text-muted-foreground">Purchases</div>
@@ -124,6 +145,10 @@ function ProfileView() {
           <div className="text-center">
             <div className={`text-2xl font-mono font-bold ${cfg.color}`}>{cfg.discount}%</div>
             <div className="text-xs font-mono uppercase text-muted-foreground">Tier Discount</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-mono font-bold text-primary">{(user.loyaltyPoints || 0).toLocaleString()}</div>
+            <div className="text-xs font-mono uppercase text-muted-foreground">Points</div>
           </div>
         </div>
 
@@ -154,6 +179,87 @@ function ProfileView() {
           })}
         </div>
       </motion.div>
+
+      {/* Order History */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="border border-border bg-card rounded-sm p-8"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <Package className="w-5 h-5 text-primary" />
+          <h3 className="text-xl font-heading font-bold uppercase">Order History</h3>
+        </div>
+
+        {ordersLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-muted/30 rounded-sm animate-pulse" />)}
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-10 border border-dashed border-border rounded-sm">
+            <Package className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="font-mono text-sm text-muted-foreground">No orders yet</p>
+            <Link to="/products" className="inline-block mt-3 font-mono text-xs text-primary hover:underline">Browse the catalog →</Link>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {orders.slice(0, 8).map((order) => {
+              const date = new Date(order.createdAt);
+              const isPickup = order.fulfillmentType === "pickup";
+              return (
+                <div key={order.id} className="flex items-center justify-between p-4 bg-background border border-border/50 rounded-sm hover:border-primary/20 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-2 h-2 rounded-full ${order.status === "completed" ? "bg-primary" : "bg-muted-foreground"}`} />
+                    <div>
+                      <p className="font-mono text-sm font-bold">#{String(order.id).padStart(6, "0")}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="font-mono text-xs text-muted-foreground">{order.itemCount} item{order.itemCount !== 1 ? "s" : ""}</p>
+                        <span className="text-muted-foreground/40">·</span>
+                        <p className="font-mono text-xs text-muted-foreground capitalize">{isPickup ? "Pickup" : "Delivery"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-mono text-sm font-bold text-primary">${parseFloat(order.totalAmount).toLocaleString()}</p>
+                    <div className="flex items-center gap-1 justify-end mt-0.5">
+                      <Clock className="w-3 h-3 text-muted-foreground" />
+                      <p className="font-mono text-xs text-muted-foreground">{date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {orders.length > 8 && (
+              <p className="font-mono text-xs text-muted-foreground text-center pt-2">+{orders.length - 8} more orders</p>
+            )}
+          </div>
+        )}
+      </motion.div>
+
+      {/* Loyalty Points info */}
+      {(user.loyaltyPoints || 0) > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          className="border border-primary/30 bg-primary/5 rounded-sm p-6"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Gift className="w-6 h-6 text-primary" />
+              <div>
+                <h4 className="font-heading font-bold uppercase text-sm text-primary">Loyalty Points Balance</h4>
+                <p className="font-mono text-xs text-muted-foreground">Earned 1 point per $1 spent. Redeem for future discounts.</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-3xl font-bold text-primary">{(user.loyaltyPoints || 0).toLocaleString()}</p>
+              <p className="font-mono text-xs text-muted-foreground">points</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Platinum access */}
       {user.tier === "platinum" && (

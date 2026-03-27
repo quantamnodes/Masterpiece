@@ -6,7 +6,9 @@ import { type Product } from "@workspace/api-client-react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { ProductCard } from "@/components/ProductCard";
 import { WishlistButton } from "@/components/WishlistButton";
-import { ShoppingCart, ChevronLeft, ShieldCheck, Truck, Cpu, Zap } from "lucide-react";
+import { ShoppingCart, ChevronLeft, ShieldCheck, Truck, Cpu, Zap, Bell, BellRing, CheckCircle2 } from "lucide-react";
+import { useRecentlyViewedStore } from "@/store/recently-viewed-store";
+import { useUserStore } from "@/store/user-store";
 import { useToast } from "@/hooks/use-toast";
 import {
   motion,
@@ -128,11 +130,16 @@ export default function ProductDetail() {
 
   const { addToCart, isAdding } = useCartManager();
   const { toast } = useToast();
+  const { user } = useUserStore();
+  const { addItem: addRecentlyViewed } = useRecentlyViewedStore();
 
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantId, setSelectedVariantId] = useState<number | undefined>(undefined);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageZoomed, setImageZoomed] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifySubscribed, setNotifySubscribed] = useState(false);
+  const [notifyLoading, setNotifyLoading] = useState(false);
 
   const imageRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: imageRef, offset: ["start start", "end start"] });
@@ -163,7 +170,25 @@ export default function ProductDetail() {
     setSelectedVariantId(undefined);
     setQuantity(1);
     setImageLoaded(false);
-  }, [productId]);
+    setNotifySubscribed(false);
+    setNotifyEmail(user?.email || "");
+  }, [productId, user?.email]);
+
+  // Track recently viewed
+  useEffect(() => {
+    if (!product) return;
+    addRecentlyViewed({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      category: product.category,
+      basePrice: String(product.basePrice),
+      salePrice: product.salePrice ? String(product.salePrice) : null,
+      imageUrl: product.imageUrl,
+      badge: product.badge ?? null,
+      stock: product.stock,
+    });
+  }, [product?.id]);
 
   if (isLoading) {
     return (
@@ -225,6 +250,24 @@ export default function ProductDetail() {
     } catch {
       toast({ title: "Error", description: "Failed to add to loadout.", variant: "destructive" });
     }
+  };
+
+  const handleNotifyMe = async () => {
+    if (!notifyEmail.trim() || notifySubscribed) return;
+    setNotifyLoading(true);
+    try {
+      const res = await fetch(`${API}/restock-notify`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id, email: notifyEmail.trim() }),
+      });
+      if (res.ok) {
+        setNotifySubscribed(true);
+        toast({ title: "Restock Alert Set", description: "We'll notify you when this product is back.", className: "bg-card border-primary" });
+      }
+    } catch {}
+    setNotifyLoading(false);
   };
 
   const performanceMetrics = [
@@ -483,6 +526,48 @@ export default function ProductDetail() {
                   />
                   Critical Stock Level: Only {product.stock} units remain.
                 </motion.p>
+              )}
+
+              {isOutOfStock && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border border-border bg-card/50 rounded-sm p-5"
+                >
+                  {notifySubscribed ? (
+                    <div className="flex items-center gap-3 text-primary">
+                      <CheckCircle2 className="w-5 h-5 shrink-0" />
+                      <div>
+                        <p className="font-mono text-sm font-bold">Restock alert active</p>
+                        <p className="font-mono text-xs text-muted-foreground">We'll notify {notifyEmail} when stock returns.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Bell className="w-4 h-4 text-primary" />
+                        <p className="font-mono text-sm font-bold uppercase">Notify Me When Back in Stock</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          value={notifyEmail}
+                          onChange={(e) => setNotifyEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          className="flex-1 bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
+                        />
+                        <button
+                          onClick={handleNotifyMe}
+                          disabled={!notifyEmail.trim() || notifyLoading}
+                          className="px-4 py-2 bg-primary text-primary-foreground font-mono text-xs uppercase font-bold rounded-sm hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                        >
+                          {notifyLoading ? <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> : <BellRing className="w-3.5 h-3.5" />}
+                          Alert Me
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
               )}
             </motion.div>
 

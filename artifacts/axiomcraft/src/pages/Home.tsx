@@ -12,6 +12,7 @@ import { Cpu, Zap, Shield, ArrowRight, ChevronRight, ChevronLeft } from "lucide-
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
+import { RecentlyViewedCarousel } from "@/components/RecentlyViewedCarousel";
 import { useEffect, useRef, useState } from "react";
 
 const ALL_TESTIMONIALS = [
@@ -622,6 +623,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <RecentlyViewedCarousel />
     </Layout>
   );
 }

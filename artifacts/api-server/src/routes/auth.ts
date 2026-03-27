@@ -28,6 +28,7 @@ function formatUser(user: typeof usersTable.$inferSelect) {
     tier: user.tier,
     totalSpent: parseFloat(user.totalSpent),
     purchaseCount: user.purchaseCount,
+    loyaltyPoints: user.loyaltyPoints ?? 0,
   };
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
@@ -6,6 +6,7 @@ import { useListProducts, type Product } from "@workspace/api-client-react";
 import { X, Plus, ArrowRight, CheckCircle, XCircle } from "lucide-react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { useToast } from "@/hooks/use-toast";
+import { useCompareStore } from "@/store/compare-store";
 
 type ProductSummary = Product;
 
@@ -88,6 +89,20 @@ export default function Compare() {
   const [showPicker, setShowPicker] = useState(false);
   const { addToCart } = useCartManager();
   const { toast } = useToast();
+  const { items: storeItems } = useCompareStore();
+
+  const { data: allProductsData } = useListProducts({});
+
+  useEffect(() => {
+    if (storeItems.length === 0 || !allProductsData?.products) return;
+    const allProducts = allProductsData.products;
+    const preloaded = storeItems
+      .map((si) => allProducts.find((p) => p.id === si.id))
+      .filter(Boolean) as ProductSummary[];
+    if (preloaded.length > 0) {
+      setCompareList(preloaded.slice(0, MAX_COMPARE));
+    }
+  }, [allProductsData?.products?.length, storeItems.length]);
 
   const addProduct = (p: ProductSummary) => {
     if (compareList.find((c) => c.id === p.id)) return;

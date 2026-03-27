@@ -97,21 +97,24 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 AxiomCraft premium PC hardware e-commerce storefront. React + Vite SPA, always dark mode.
 
 **Pages (10+):**
-- Home — cinematic hero, bento grid, stat counters, 3×3 New Acquisitions grid, Field Reports testimonials
-- Products — catalog with category/sort filters, search
-- Product Detail — spec table, variant switcher, add-to-cart, related products
-- Cart — line items, order summary, clear cart
+- Home — cinematic hero, bento grid, stat counters, 3×3 New Acquisitions grid, Field Reports testimonials, Recently Viewed carousel
+- Products — catalog with category/sort/socket/form-factor/wattage/memory/storage filters + **price range filter** (min/max inputs)
+- Product Detail — spec table, variant switcher, add-to-cart, related products, **recently viewed tracking**, **Notify Me (restock alert)** for OOS items
+- Cart — BOPIS (delivery $15 flat / pickup free + branch selector), real order placement (POST /orders), loyalty point estimate, success screen
 - Contact — support form
-- Account — login/signup tabs, profile with tier badge, spending progress bar, order history
+- Account — login/signup tabs, profile with tier badge, spending progress bar, **order history**, **loyalty points balance card**
 - Deals — Deal Vault with discount badges, savings counter, animated deal cards
 - PC Builder — pre-configured build presets + per-slot component selector with live price total
-- Compare — side-by-side spec table for up to 3 products
+- Compare — side-by-side spec table for up to 3 products, **pre-populates from compare-store** when navigating from catalog
 - Platinum — tier-gated secret page for Platinum operators with classified deals
+- Wishlist — saved products list with toggle from ProductCard
 
 **Design:** Brutalist luxury / futuristic noir — #050505 bg, #00F0FF cyan, #F04444 red accent
 **Typography:** Space Grotesk (headings), Inter (body), JetBrains Mono (specs/numbers)
 **Animations:** Framer Motion scroll-linked reveals, spring micro-interactions, staggered entrances
 **State:** Zustand cart store + user store (both persisted to localStorage); TIER_CONFIG (Bronze/Silver/Gold/Platinum)
+**Compare store:** `useCompareStore` (Zustand, max 4 items, no persist) → `CompareBar` (floating bottom bar, app-global)
+**Recently Viewed store:** `useRecentlyViewedStore` (Zustand persist, max 8, localStorage) → `RecentlyViewedCarousel` on homepage
 **Auth:** bcryptjs + express-session; POST /api/auth/register|login|logout|claim-role, GET /api/auth/me
 
 **Multi-Role System:**

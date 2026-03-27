@@ -1,0 +1,18 @@
+{
+  "name": "AxiomCraft — Premium PC Hardware",
+  "short_name": "AxiomCraft",
+  "description": "High-performance PC hardware store with brutalist-luxury aesthetics.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#00F0FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

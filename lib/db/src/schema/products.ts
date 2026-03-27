@@ -76,6 +76,7 @@ export const usersTable = pgTable("users", {
   tier: text("tier").notNull().default("bronze"), // bronze | silver | gold | platinum
   totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).notNull().default("0"),
   purchaseCount: integer("purchase_count").notNull().default(0),
+  loyaltyPoints: integer("loyalty_points").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -139,10 +140,23 @@ export const ordersTable = pgTable("orders", {
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   itemCount: integer("item_count").notNull().default(1),
   status: text("status").notNull().default("completed"),
+  fulfillmentType: text("fulfillment_type").notNull().default("delivery"), // delivery | pickup
+  branchId: integer("branch_id"), // for pickup orders
+  deliveryFee: decimal("delivery_fee", { precision: 8, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const restockNotificationsTable = pgTable("restock_notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id"),
+  productId: integer("product_id").notNull(),
+  email: text("email").notNull(),
+  notified: boolean("notified").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export type Order = typeof ordersTable.$inferSelect;
+export type RestockNotification = typeof restockNotificationsTable.$inferSelect;
 
 export const insertProductSchema = createInsertSchema(productsTable).omit({
   id: true,

@@ -93,6 +93,8 @@ export default function Products() {
   const [selectedMemorySpeeds, setSelectedMemorySpeeds] = useState<string[]>([]);
   const [selectedStorageCapacities, setSelectedStorageCapacities] = useState<string[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [priceMin, setPriceMin] = useState<string>("");
+  const [priceMax, setPriceMax] = useState<string>("");
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -125,6 +127,9 @@ export default function Products() {
   type Spec = { name: string; value: string };
   const getSpecs = (p: { specs: unknown }): Spec[] =>
     Array.isArray(p.specs) ? (p.specs as Spec[]) : [];
+
+  const priceMinNum = priceMin !== "" ? parseFloat(priceMin) : null;
+  const priceMaxNum = priceMax !== "" ? parseFloat(priceMax) : null;
 
   const filteredProducts = (() => {
     if (!productsData?.products) return [];
@@ -166,6 +171,18 @@ export default function Products() {
         ),
       );
     }
+    if (priceMinNum !== null) {
+      list = list.filter((p) => {
+        const price = p.salePrice ? parseFloat(String(p.salePrice)) : parseFloat(String(p.basePrice));
+        return price >= priceMinNum;
+      });
+    }
+    if (priceMaxNum !== null) {
+      list = list.filter((p) => {
+        const price = p.salePrice ? parseFloat(String(p.salePrice)) : parseFloat(String(p.basePrice));
+        return price <= priceMaxNum;
+      });
+    }
     return list;
   })();
 
@@ -197,7 +214,9 @@ export default function Products() {
     selectedFormFactors.length > 0 ||
     selectedWattages.length > 0 ||
     selectedMemorySpeeds.length > 0 ||
-    selectedStorageCapacities.length > 0;
+    selectedStorageCapacities.length > 0 ||
+    priceMinNum !== null ||
+    priceMaxNum !== null;
 
   const clearFilters = () => {
     setCategory(undefined);
@@ -207,6 +226,8 @@ export default function Products() {
     setSelectedWattages([]);
     setSelectedMemorySpeeds([]);
     setSelectedStorageCapacities([]);
+    setPriceMin("");
+    setPriceMax("");
     window.history.pushState({}, "", "/products");
   };
 
@@ -287,6 +308,50 @@ export default function Products() {
         selected={selectedStorageCapacities}
         onToggle={toggleStorageCapacity}
       />
+
+      <div>
+        <button
+          onClick={() => {}}
+          className="w-full flex justify-between items-center font-heading font-bold uppercase tracking-wider border-b border-border pb-2 mb-3"
+        >
+          <span>Price Range</span>
+        </button>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <label className="font-mono text-[10px] uppercase text-muted-foreground mb-1 block">Min ($)</label>
+              <input
+                type="number"
+                min={0}
+                value={priceMin}
+                onChange={(e) => setPriceMin(e.target.value)}
+                placeholder="0"
+                className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
+              />
+            </div>
+            <span className="text-muted-foreground font-mono text-xs mt-4">—</span>
+            <div className="flex-1">
+              <label className="font-mono text-[10px] uppercase text-muted-foreground mb-1 block">Max ($)</label>
+              <input
+                type="number"
+                min={0}
+                value={priceMax}
+                onChange={(e) => setPriceMax(e.target.value)}
+                placeholder="∞"
+                className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
+              />
+            </div>
+          </div>
+          {(priceMin || priceMax) && (
+            <button
+              onClick={() => { setPriceMin(""); setPriceMax(""); }}
+              className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Clear range
+            </button>
+          )}
+        </div>
+      </div>
 
       <div>
         <h3 className="font-heading font-bold uppercase tracking-wider mb-3 border-b border-border pb-2">

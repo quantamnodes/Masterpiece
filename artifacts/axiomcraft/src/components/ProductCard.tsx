@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom';
 import { type Product } from "@workspace/api-client-react";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, GitCompareArrows } from "lucide-react";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { WishlistButton } from "@/components/WishlistButton";
+import { useCompareStore } from "@/store/compare-store";
 
 export function ProductCard({ product, fillContainer = false }: { product: Product; fillContainer?: boolean }) {
   const { addToCart, isAdding } = useCartManager();
   const { toast } = useToast();
+  const { addItem, removeItem, isInList } = useCompareStore();
 
   const handleQuickAdd = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -21,7 +23,7 @@ export function ProductCard({ product, fillContainer = false }: { product: Produ
         description: `${product.name} initialized in matrix.`,
         className: "bg-card border-primary text-foreground",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "System Error",
         description: "Failed to allocate resources.",
@@ -30,14 +32,40 @@ export function ProductCard({ product, fillContainer = false }: { product: Produ
     }
   };
 
+  const handleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const specs = Array.isArray(product.specs) ? (product.specs as Array<{ name: string; value: string }>) : [];
+    if (isInList(product.id)) {
+      removeItem(product.id);
+    } else {
+      addItem({
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        category: product.category,
+        basePrice: String(product.basePrice),
+        salePrice: product.salePrice ? String(product.salePrice) : null,
+        imageUrl: product.imageUrl,
+        stock: product.stock,
+        specs,
+      });
+      toast({
+        title: "Added to Compare",
+        description: "Select up to 4 products to compare.",
+        className: "bg-card border-primary text-foreground",
+      });
+    }
+  };
+
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
+  const inCompare = isInList(product.id);
   const imageUrl = product.imageUrl || `https://picsum.photos/seed/${product.slug}/800/600`;
 
   return (
     <motion.div 
       whileHover={{ y: -4 }}
-      className={`group flex flex-col bg-card border border-border rounded-sm overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,240,255,0.1)] relative ${fillContainer ? "h-full" : ""}`}
+      className={`group flex flex-col bg-card border border-border rounded-sm overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(0,240,255,0.1)] relative ${fillContainer ? "h-full" : ""} ${inCompare ? "border-primary/60 shadow-[0_0_20px_rgba(0,240,255,0.12)]" : ""}`}
       data-testid={`card-product-${product.id}`}
     >
       <Link to={`/products/${product.id}`} className="flex-1 flex flex-col relative outline-none h-full">
@@ -62,9 +90,25 @@ export function ProductCard({ product, fillContainer = false }: { product: Produ
               </span>
             )}
           </div>
-          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="absolute top-3 right-3 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <WishlistButton productId={product.id} />
+            <button
+              onClick={handleCompare}
+              className={`w-8 h-8 flex items-center justify-center rounded-sm border transition-colors backdrop-blur-sm ${
+                inCompare
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background/80 text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
+              }`}
+              title={inCompare ? "Remove from compare" : "Add to compare"}
+            >
+              <GitCompareArrows className="w-3.5 h-3.5" />
+            </button>
           </div>
+          {inCompare && (
+            <div className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-primary text-primary-foreground rounded-sm font-mono text-[9px] uppercase tracking-wider">
+              Comparing
+            </div>
+          )}
         </div>
 
         {/* Content */}

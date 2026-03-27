@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState } from "react";
 import { useUserStore } from "@/store/user-store";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { CompareBar } from "@/components/CompareBar";
 
 import Home from "@/pages/Home";
 import Products from "@/pages/Products";
@@ -75,6 +76,7 @@ function App() {
         <BrowserRouter basename={base}>
           <AuthInit />
           <AppRoutes />
+          <CompareBar />
         </BrowserRouter>
         <Toaster />
       </TooltipProvider>
