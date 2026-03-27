@@ -508,7 +508,7 @@ export default function Products() {
         {/* Layout: sidebar + grid */}
         <div className="flex flex-col md:flex-row gap-12">
           <aside className="hidden md:block w-64 shrink-0">
-            <FilterSidebar />
+            {FilterSidebar()}
           </aside>
 
           <div className="flex-1">
@@ -573,7 +573,7 @@ export default function Products() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <FilterSidebar />
+              {FilterSidebar()}
               <div className="mt-12 pt-6 border-t border-border">
                 <button
                   onClick={() => setMobileFiltersOpen(false)}
