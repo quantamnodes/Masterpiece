@@ -23,7 +23,7 @@ import { Link, useLocation } from "react-router-dom";
 import {
   ShoppingCart, Menu, X, Cpu, ChevronDown, User, Search,
   Crown, Tag, Wrench, ArrowRight, Star, Zap, LogOut, Heart,
-  Layers, Building2,
+  Layers, Building2, SlidersHorizontal,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -192,9 +192,14 @@ function UserMenu() {
 
             {/* Role-gated links */}
             {isOwner(user) && (
-              <Link to="/dashboard" onClick={() => setIsOpen(false)} className="navbar-popup-link navbar-popup-link--role">
-                <Layers    className="w-4 h-4" /> Owner Dashboard
-              </Link>
+              <>
+                <Link to="/dashboard" onClick={() => setIsOpen(false)} className="navbar-popup-link navbar-popup-link--role">
+                  <Layers className="w-4 h-4" /> Owner Dashboard
+                </Link>
+                <Link to="/admin/gateways" onClick={() => setIsOpen(false)} className="navbar-popup-link navbar-popup-link--role">
+                  <SlidersHorizontal className="w-4 h-4" /> Gateway Settings
+                </Link>
+              </>
             )}
             {isManager(user) && (
               <Link to="/manager"   onClick={() => setIsOpen(false)} className="navbar-popup-link navbar-popup-link--role">
@@ -333,12 +338,20 @@ export function Navbar() {
 
               {/* Role-gated admin links */}
               {isOwner(user) && (
-                <Link
-                  to="/dashboard"
-                  className={`navbar-role-link ${isActivePath("/dashboard") ? "navbar-role-link--active" : ""}`}
-                >
-                  <Layers className="w-3.5 h-3.5" /> Dashboard
-                </Link>
+                <>
+                  <Link
+                    to="/dashboard"
+                    className={`navbar-role-link ${isActivePath("/dashboard") ? "navbar-role-link--active" : ""}`}
+                  >
+                    <Layers className="w-3.5 h-3.5" /> Dashboard
+                  </Link>
+                  <Link
+                    to="/admin/gateways"
+                    className={`navbar-role-link ${isActivePath("/admin/gateways") ? "navbar-role-link--active" : ""}`}
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" /> Gateways
+                  </Link>
+                </>
               )}
               {isManager(user) && (
                 <Link
