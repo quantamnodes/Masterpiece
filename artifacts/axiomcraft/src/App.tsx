@@ -1,4 +1,4 @@
-import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,6 +34,12 @@ const queryClient = new QueryClient({
 });
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 function AuthInit() {
   const { fetchMe } = useUserStore();
@@ -80,6 +86,7 @@ function App() {
       <TooltipProvider>
         {loading && <LoadingScreen onComplete={handleLoadComplete} />}
         <BrowserRouter basename={base}>
+          <ScrollToTop />
           <AuthInit />
           <AppRoutes />
           <CompareBar />
