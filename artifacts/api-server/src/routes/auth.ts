@@ -65,9 +65,13 @@ router.post("/auth/register", async (req, res) => {
     if (!username || !email || !password) {
       return res.status(400).json({ error: "username, email and password are required" });
     }
-    const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
-    if (existing.length > 0) {
+    const [byEmail] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (byEmail) {
       return res.status(409).json({ error: "Email already registered" });
+    }
+    const [byUsername] = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.username, username)).limit(1);
+    if (byUsername) {
+      return res.status(409).json({ error: "Operator name already taken" });
     }
     const passwordHash = await bcrypt.hash(password, 10);
     let role = "user";
@@ -77,21 +81,21 @@ router.post("/auth/register", async (req, res) => {
       if (resolved) {
         role = resolved.role;
         branchId = resolved.branchId;
-        await db.update(accessCodesTable)
-          .set({ usedBy: -1 })
-          .where(eq(accessCodesTable.code, employeeCode.trim()));
       }
     }
     const [user] = await db
       .insert(usersTable)
       .values({ username, email, passwordHash, role, branchId, tier: "bronze", totalSpent: "0", purchaseCount: 0 })
       .returning();
-    await db.update(accessCodesTable)
-      .set({ usedBy: user.id })
-      .where(eq(accessCodesTable.code, (employeeCode || "").trim()));
+    if (employeeCode && role !== "user") {
+      await db.update(accessCodesTable)
+        .set({ usedBy: user.id })
+        .where(eq(accessCodesTable.code, employeeCode.trim()));
+    }
     req.session.userId = user.id;
     return res.status(201).json(formatUser(user));
-  } catch {
+  } catch (err) {
+    console.error("[register]", err);
     return res.status(500).json({ error: "Registration failed" });
   }
 });
