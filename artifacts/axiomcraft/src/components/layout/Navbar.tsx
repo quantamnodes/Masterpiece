@@ -354,7 +354,6 @@ export function Navbar() {
               {/* Dev Mode dropdown — owner only */}
               {isOwner(user) && (
                 <>
-                  <span className="w-px h-4 bg-border/60 mx-1 shrink-0" aria-hidden />
                   <DropdownMenu label="Dev Mode">
                     <Link to="/dashboard" className="navbar-dropdown-item-icon">
                       <Layers className="w-4 h-4 text-primary shrink-0" />
@@ -374,15 +373,12 @@ export function Navbar() {
                 </>
               )}
               {isManager(user) && (
-                <>
-                  <span className="w-px h-4 bg-border/60 mx-1 shrink-0" aria-hidden />
-                  <Link
-                    to="/manager"
-                    className={`navbar-role-link ${isActivePath("/manager") ? "navbar-role-link--active" : ""}`}
-                  >
-                    <Building2 className="w-3.5 h-3.5" /> My Branch
-                  </Link>
-                </>
+                <Link
+                  to="/manager"
+                  className={`navbar-role-link ${isActivePath("/manager") ? "navbar-role-link--active" : ""}`}
+                >
+                  <Building2 className="w-3.5 h-3.5" /> My Branch
+                </Link>
               )}
             </nav>
 
