@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
-import { Filter, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { Filter, SlidersHorizontal, X, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
@@ -24,6 +24,8 @@ function isSortOption(value: string): value is SortOption {
 }
 
 const API = import.meta.env.VITE_API_URL || `${import.meta.env.BASE_URL}api`;
+
+const PAGE_SIZE = 12;
 
 /* ─── Filter Options Type ────────────────────────────────────────────────── */
 
@@ -125,6 +127,7 @@ export default function Products() {
   const [selectedMemorySpeeds,    setSelectedMemorySpeeds]    = useState<string[]>([]);
   const [selectedStorageCapacities, setSelectedStorageCapacities] = useState<string[]>([]);
   const [mobileFiltersOpen,       setMobileFiltersOpen]       = useState(false);
+  const [page,                    setPage]                    = useState(1);
 
   /*
    * Price range — two-tier state so the filter never fires mid-type:
@@ -246,6 +249,12 @@ export default function Products() {
     return list;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productsData, selectedSockets, selectedFormFactors, selectedWattages, selectedMemorySpeeds, selectedStorageCapacities, priceMinNum, priceMaxNum]);
+
+  /* ── Pagination ── */
+  useEffect(() => { setPage(1); }, [filteredProducts]);
+
+  const totalPages   = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const pagedProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   /* ── Toggle helpers ── */
   const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>) =>
@@ -537,7 +546,7 @@ export default function Products() {
                   </div>
                 )}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[220px] gap-4">
-                  {filteredProducts.map((product, i) => {
+                  {pagedProducts.map((product, i) => {
                     const isBig  = i % 7 === 0;
                     const isTall = i % 7 === 3;
                     return (
@@ -547,6 +556,61 @@ export default function Products() {
                     );
                   })}
                 </div>
+
+                {/* ── Pagination Bar ── */}
+                {totalPages > 1 && (
+                  <div className="mt-10 flex items-center justify-between gap-4">
+                    <p className="font-mono text-xs text-muted-foreground">
+                      Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredProducts.length)} of {filteredProducts.length}
+                    </p>
+
+                    <div className="flex items-center gap-1">
+                      {/* Prev */}
+                      <button
+                        onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        disabled={page === 1}
+                        className="flex items-center justify-center w-8 h-8 border border-border rounded-sm font-mono text-sm text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+
+                      {/* Page numbers */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+                        .reduce<(number | "…")[]>((acc, n, idx, arr) => {
+                          if (idx > 0 && (n as number) - (arr[idx - 1] as number) > 1) acc.push("…");
+                          acc.push(n);
+                          return acc;
+                        }, [])
+                        .map((n, idx) =>
+                          n === "…" ? (
+                            <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center font-mono text-xs text-muted-foreground">…</span>
+                          ) : (
+                            <button
+                              key={n}
+                              onClick={() => { setPage(n as number); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                              className={`w-8 h-8 flex items-center justify-center border rounded-sm font-mono text-xs transition-colors ${
+                                page === n
+                                  ? "border-primary bg-primary/10 text-primary shadow-[0_0_10px_rgba(0,240,255,0.2)]"
+                                  : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground"
+                              }`}
+                            >
+                              {n}
+                            </button>
+                          )
+                        )}
+
+                      {/* Next */}
+                      <button
+                        onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        disabled={page === totalPages}
+                        className="flex items-center justify-center w-8 h-8 border border-border rounded-sm font-mono text-sm text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
