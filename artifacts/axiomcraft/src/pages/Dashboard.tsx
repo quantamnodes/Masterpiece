@@ -61,14 +61,13 @@ interface Product {
   tags: string[];
 }
 
-const CATEGORIES = [
-  { label: "GPUs", slug: "gpus", name: "Graphics Cards" },
-  { label: "CPUs", slug: "cpus", name: "Processors" },
-  { label: "Motherboards", slug: "motherboards", name: "Motherboards" },
-  { label: "Memory", slug: "memory", name: "RAM & Memory" },
-  { label: "Storage", slug: "storage", name: "Storage" },
-  { label: "PSUs", slug: "psus", name: "Power Supplies" },
-];
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  count?: number;
+}
 
 const EMPTY_FORM = {
   name: "", slug: "", categorySlug: "gpus", category: "Graphics Cards",
@@ -159,11 +158,13 @@ function ProductForm({
   onSave,
   onCancel,
   saving,
+  availableCategories,
 }: {
   initial?: Partial<FormData>;
   onSave: (data: FormData) => void;
   onCancel: () => void;
   saving: boolean;
+  availableCategories: Category[];
 }) {
   const [form, setForm] = useState<FormData>({
     ...EMPTY_FORM,
@@ -177,7 +178,7 @@ function ProductForm({
   const setField = (k: keyof FormData, v: string) =>
     setForm((f) => {
       if (k === "categorySlug") {
-        const cat = CATEGORIES.find((c) => c.slug === v);
+        const cat = availableCategories.find((c) => c.slug === v);
         return { ...f, categorySlug: v, category: cat?.name || v };
       }
       if (k === "name" && !initial?.slug) {
@@ -220,7 +221,12 @@ function ProductForm({
         <div>
           <label className={labelCls}>Category *</label>
           <select className={inputCls} value={form.categorySlug} onChange={(e) => setField("categorySlug", e.target.value)}>
-            {CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.label} — {c.name}</option>)}
+            {availableCategories.length === 0 && (
+              <option value="">Loading categories…</option>
+            )}
+            {availableCategories.map((c) => (
+              <option key={c.slug} value={c.slug}>{c.name}</option>
+            ))}
           </select>
         </div>
         <div>
@@ -375,7 +381,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock">("overview");
+  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock" | "categories">("overview");
 
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
@@ -405,6 +411,14 @@ export default function Dashboard() {
   const [branchProducts, setBranchProducts] = useState<Array<Product & { branchData: { available: boolean; stock: number | null; discount: string | null; featured: boolean; notes: string } | null }>>([]);
   const [branchStockLoading, setBranchStockLoading] = useState(false);
   const [savingCell, setSavingCell] = useState<string | null>(null);
+
+  // Categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catForm, setCatForm] = useState({ name: "", slug: "", description: "" });
+  const [editCat, setEditCat] = useState<Category | null>(null);
+  const [catSaving, setCatSaving] = useState(false);
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState<number | null>(null);
+  const [catAutoSlug, setCatAutoSlug] = useState(true);
 
   // Sales data state
   const [salesData, setSalesData] = useState<{
@@ -482,6 +496,16 @@ export default function Dashboard() {
     } catch {}
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/categories`);
+      if (res.ok) {
+        const data = await res.json();
+        setCategories(data.categories || []);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (!user) { navigate("/account"); return; }
     if (!isOwner(user)) { navigate("/"); return; }
@@ -489,7 +513,8 @@ export default function Dashboard() {
     fetchBranches();
     fetchCodes();
     fetchSalesData();
-  }, [user, navigate, fetchProducts, fetchBranches, fetchCodes, fetchSalesData]);
+    fetchCategories();
+  }, [user, navigate, fetchProducts, fetchBranches, fetchCodes, fetchSalesData, fetchCategories]);
 
   useEffect(() => {
     if (branches.length > 0 && !selectedBranchId) {
@@ -664,6 +689,70 @@ export default function Dashboard() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  /* ── Category CRUD handlers ── */
+
+  const handleCreateCategory = async () => {
+    if (!catForm.name || !catForm.slug) return;
+    setCatSaving(true);
+    try {
+      const res = await fetch(`${API}/categories`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(catForm),
+      });
+      if (res.ok) {
+        toast({ title: "Category created" });
+        setCatForm({ name: "", slug: "", description: "" });
+        setCatAutoSlug(true);
+        fetchCategories();
+      } else {
+        const j = await res.json();
+        toast({ title: "Error", description: j.message || j.error, variant: "destructive" });
+      }
+    } finally { setCatSaving(false); }
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editCat || !catForm.name) return;
+    setCatSaving(true);
+    try {
+      const res = await fetch(`${API}/categories/${editCat.id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: catForm.name, description: catForm.description }),
+      });
+      if (res.ok) {
+        toast({ title: "Category updated" });
+        setEditCat(null);
+        setCatForm({ name: "", slug: "", description: "" });
+        fetchCategories();
+      } else {
+        const j = await res.json();
+        toast({ title: "Error", description: j.message || j.error, variant: "destructive" });
+      }
+    } finally { setCatSaving(false); }
+  };
+
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      const res = await fetch(`${API}/categories/${id}`, { method: "DELETE", credentials: "include" });
+      if (res.ok) {
+        toast({ title: "Category deleted" });
+        setConfirmDeleteCat(null);
+        fetchCategories();
+      } else {
+        const j = await res.json();
+        toast({ title: "Cannot delete", description: j.message || j.error, variant: "destructive" });
+        setConfirmDeleteCat(null);
+      }
+    } catch {
+      toast({ title: "Error deleting category", variant: "destructive" });
+      setConfirmDeleteCat(null);
+    }
+  };
+
   if (!user || !isOwner(user)) {
     return (
       <Layout>
@@ -712,6 +801,7 @@ export default function Dashboard() {
             { id: "branches", label: "Branches", icon: Building2 },
             { id: "codes", label: "Access Codes", icon: Key },
             { id: "stock", label: "Branch Stock", icon: SlidersHorizontal },
+            { id: "categories", label: "Categories", icon: Layers },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -754,7 +844,7 @@ export default function Dashboard() {
                     <h2 className="font-heading font-bold text-xl uppercase flex items-center gap-2"><Plus className="w-5 h-5 text-primary" /> New Product</h2>
                     <button onClick={() => setView("list")} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
                   </div>
-                  <ProductForm onSave={handleCreate} onCancel={() => setView("list")} saving={saving} />
+                  <ProductForm onSave={handleCreate} onCancel={() => setView("list")} saving={saving} availableCategories={categories} />
                 </motion.div>
               )}
               {view === "edit" && editProduct && (
@@ -768,6 +858,7 @@ export default function Dashboard() {
                     onSave={handleUpdate}
                     onCancel={() => { setView("list"); setEditProduct(null); }}
                     saving={saving}
+                    availableCategories={categories}
                   />
                 </motion.div>
               )}
@@ -1405,6 +1496,158 @@ export default function Dashboard() {
             )}
           </div>
         )}
+
+        {/* ===================== CATEGORIES TAB ===================== */}
+        {tab === "categories" && (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between">
+              <h2 className="font-heading font-bold text-xl uppercase flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" /> Category Management
+              </h2>
+              <p className="font-mono text-xs text-muted-foreground">{categories.length} categories</p>
+            </div>
+
+            {/* ── Create / Edit form ── */}
+            <div className="bg-card border border-border rounded-sm p-6">
+              <h3 className="font-heading font-bold uppercase tracking-wider mb-5 pb-3 border-b border-border">
+                {editCat ? `Editing: ${editCat.name}` : "Add New Category"}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5`}>Name *</label>
+                  <input
+                    className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+                    value={catForm.name}
+                    placeholder="e.g. Cooling"
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setCatForm((f) => ({
+                        ...f,
+                        name,
+                        slug: catAutoSlug && !editCat
+                          ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+                          : f.slug,
+                      }));
+                    }}
+                  />
+                </div>
+                {!editCat && (
+                  <div>
+                    <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Slug *</label>
+                    <input
+                      className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+                      value={catForm.slug}
+                      placeholder="e.g. cooling"
+                      onChange={(e) => { setCatAutoSlug(false); setCatForm((f) => ({ ...f, slug: e.target.value })); }}
+                    />
+                  </div>
+                )}
+                <div className={editCat ? "sm:col-span-2" : "sm:col-span-2"}>
+                  <label className="block font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1.5">Description</label>
+                  <input
+                    className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors"
+                    value={catForm.description}
+                    placeholder="Optional short description"
+                    onChange={(e) => setCatForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mt-5 pt-4 border-t border-border">
+                {editCat ? (
+                  <>
+                    <button
+                      onClick={handleUpdateCategory}
+                      disabled={catSaving || !catForm.name}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-heading font-bold uppercase text-sm rounded-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {catSaving ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Check className="w-4 h-4" />}
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => { setEditCat(null); setCatForm({ name: "", slug: "", description: "" }); setCatAutoSlug(true); }}
+                      className="px-5 py-2.5 border border-border rounded-sm font-heading font-bold uppercase text-sm hover:border-foreground/30 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleCreateCategory}
+                    disabled={catSaving || !catForm.name || !catForm.slug}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-heading font-bold uppercase text-sm rounded-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    {catSaving ? <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Plus className="w-4 h-4" />}
+                    Create Category
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ── Category list ── */}
+            <div className="border border-border rounded-sm overflow-hidden">
+              <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 bg-muted/30 px-5 py-3 border-b border-border">
+                {["Name", "Slug", "Products", "Actions"].map((h) => (
+                  <span key={h} className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{h}</span>
+                ))}
+              </div>
+
+              {categories.length === 0 ? (
+                <div className="py-16 text-center font-mono text-sm text-muted-foreground">
+                  No categories yet. Create your first one above.
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {categories.map((cat) => (
+                    <div key={cat.id} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 items-center px-5 py-4 hover:bg-muted/10 transition-colors">
+                      <div>
+                        <p className="font-heading font-bold text-sm">{cat.name}</p>
+                        {cat.description && <p className="font-mono text-xs text-muted-foreground truncate max-w-[200px]">{cat.description}</p>}
+                      </div>
+                      <span className="font-mono text-xs text-muted-foreground">{cat.slug}</span>
+                      <span className="font-mono text-sm">{cat.count ?? 0}</span>
+                      <div className="flex items-center gap-2">
+                        {confirmDeleteCat === cat.id ? (
+                          <>
+                            <button
+                              onClick={() => handleDeleteCategory(cat.id)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 text-destructive border border-destructive/30 rounded-sm font-mono text-xs uppercase hover:bg-destructive/20 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" /> Confirm
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteCat(null)}
+                              className="px-3 py-1.5 border border-border rounded-sm font-mono text-xs uppercase hover:border-foreground/30 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => { setEditCat(cat); setCatForm({ name: cat.name, slug: cat.slug, description: cat.description }); setCatAutoSlug(false); }}
+                              className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteCat(cat.id)}
+                              className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Price modal */}

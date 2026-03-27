@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { useListProducts, useListCategories } from "@workspace/api-client-react";
 import { ProductCard, ProductCardSkeleton } from "@/components/ProductCard";
 import { Filter, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+/* ─── Types ──────────────────────────────────────────────────────────────── */
 
 type SortOption = "newest" | "price_asc" | "price_desc" | "name_asc";
 
@@ -21,11 +23,36 @@ function isSortOption(value: string): value is SortOption {
   return (SORT_OPTIONS as string[]).includes(value);
 }
 
-const SOCKET_OPTIONS = ["AM5", "LGA1851"];
-const FORM_FACTOR_OPTIONS = ["ATX", "mATX"];
-const WATTAGE_OPTIONS = ["850W", "1000W", "1600W"];
-const MEMORY_SPEED_OPTIONS = ["6400 MT/s", "7200 MT/s", "8000 MT/s"];
-const STORAGE_CAPACITY_OPTIONS = ["2TB", "4TB"];
+const API = import.meta.env.VITE_API_URL || `${import.meta.env.BASE_URL}api`;
+
+/* ─── Filter Options Type ────────────────────────────────────────────────── */
+
+interface FilterOptions {
+  sockets: string[];
+  formFactors: string[];
+  wattages: string[];
+  memorySpeeds: string[];
+  storageCapacities: string[];
+}
+
+/* ─── Custom Debounce Hook ───────────────────────────────────────────────── */
+
+/**
+ * useDebounced — returns a debounced copy of `value` that only updates
+ * once the value has been stable for `delay` ms.
+ *
+ * Used for price range inputs so the product list doesn't filter mid-type.
+ */
+function useDebounced<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+/* ─── MultiSelectFilter ──────────────────────────────────────────────────── */
 
 function MultiSelectFilter({
   title,
@@ -39,6 +66,9 @@ function MultiSelectFilter({
   onToggle: (val: string) => void;
 }) {
   const [open, setOpen] = useState(true);
+
+  if (!options || options.length === 0) return null;
+
   return (
     <div>
       <button
@@ -55,7 +85,7 @@ function MultiSelectFilter({
             return (
               <li key={opt}>
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className="relative flex items-center justify-center w-4 h-4 border border-border bg-background rounded-sm group-hover:border-primary transition-colors shrink-0">
+                  <div className="relative flex items-center justify-center w-4 h-4 border border-border bg-background rounded-sm hover:border-primary transition-colors shrink-0">
                     <input
                       type="checkbox"
                       className="sr-only"
@@ -64,7 +94,7 @@ function MultiSelectFilter({
                     />
                     {checked && <div className="w-2.5 h-2.5 bg-primary rounded-sm" />}
                   </div>
-                  <span className={`uppercase transition-colors ${checked ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}>
+                  <span className={`uppercase transition-colors ${checked ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}>
                     {opt}
                   </span>
                 </label>
@@ -77,40 +107,67 @@ function MultiSelectFilter({
   );
 }
 
+/* ─── MAIN PAGE ──────────────────────────────────────────────────────────── */
+
 export default function Products() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const initialCategory = searchParams.get("category") || undefined;
 
-  const [category, setCategory] = useState<string | undefined>(initialCategory);
-  const [inStockOnly, setInStockOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [sortOpen, setSortOpen] = useState(false);
-  const sortRef = useRef<HTMLDivElement>(null);
-  const [selectedSockets, setSelectedSockets] = useState<string[]>([]);
-  const [selectedFormFactors, setSelectedFormFactors] = useState<string[]>([]);
-  const [selectedWattages, setSelectedWattages] = useState<string[]>([]);
-  const [selectedMemorySpeeds, setSelectedMemorySpeeds] = useState<string[]>([]);
+  /* ── Filter state ── */
+  const [category,                setCategory]                = useState<string | undefined>(initialCategory);
+  const [inStockOnly,             setInStockOnly]             = useState(false);
+  const [sortBy,                  setSortBy]                  = useState<SortOption>("newest");
+  const [sortOpen,                setSortOpen]                = useState(false);
+  const [selectedSockets,         setSelectedSockets]         = useState<string[]>([]);
+  const [selectedFormFactors,     setSelectedFormFactors]     = useState<string[]>([]);
+  const [selectedWattages,        setSelectedWattages]        = useState<string[]>([]);
+  const [selectedMemorySpeeds,    setSelectedMemorySpeeds]    = useState<string[]>([]);
   const [selectedStorageCapacities, setSelectedStorageCapacities] = useState<string[]>([]);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [priceMin, setPriceMin] = useState<string>("");
-  const [priceMax, setPriceMax] = useState<string>("");
+  const [mobileFiltersOpen,       setMobileFiltersOpen]       = useState(false);
 
+  /*
+   * Price range — two-tier state to fix the "fires on first character" bug:
+   *   priceMinDraft / priceMaxDraft  ← what the user sees while typing (instant)
+   *   priceMin / priceMax            ← debounced copy used for actual filtering
+   *
+   * The 400 ms debounce means the user can type "1", "15", "150" etc. without
+   * triggering a new filter pass until they pause.
+   */
+  const [priceMinDraft, setPriceMinDraft] = useState<string>("");
+  const [priceMaxDraft, setPriceMaxDraft] = useState<string>("");
+  const priceMin = useDebounced(priceMinDraft, 400);
+  const priceMax = useDebounced(priceMaxDraft, 400);
+
+  /* ── Dynamic filter options (fetched from API) ── */
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    sockets: [], formFactors: [], wattages: [], memorySpeeds: [], storageCapacities: [],
+  });
+
+  useEffect(() => {
+    fetch(`${API}/products/filter-options`)
+      .then((r) => r.json())
+      .then((data: FilterOptions) => setFilterOptions(data))
+      .catch(() => {/* ignore — falls back to empty arrays */});
+  }, []);
+
+  /* ── Sync category from URL ── */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     setCategory(params.get("category") || undefined);
   }, [location.search]);
 
+  /* ── Close sort dropdown on outside click ── */
+  const sortRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
-        setSortOpen(false);
-      }
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  /* ── Data fetching ── */
   const { data: categoriesData } = useListCategories();
 
   const { data: productsData, isLoading, isFetching } = useListProducts({
@@ -124,6 +181,7 @@ export default function Products() {
     storageCapacity: selectedStorageCapacities.length === 1 ? selectedStorageCapacities[0] : undefined,
   });
 
+  /* ── Client-side post-filter (multi-select + price) ── */
   type Spec = { name: string; value: string };
   const getSpecs = (p: { specs: unknown }): Spec[] =>
     Array.isArray(p.specs) ? (p.specs as Spec[]) : [];
@@ -131,9 +189,10 @@ export default function Products() {
   const priceMinNum = priceMin !== "" ? parseFloat(priceMin) : null;
   const priceMaxNum = priceMax !== "" ? parseFloat(priceMax) : null;
 
-  const filteredProducts = (() => {
+  const filteredProducts = useMemo(() => {
     if (!productsData?.products) return [];
     let list = productsData.products;
+
     if (selectedSockets.length > 1) {
       list = list.filter((p) =>
         selectedSockets.some((s) =>
@@ -184,39 +243,26 @@ export default function Products() {
       });
     }
     return list;
-  })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productsData, selectedSockets, selectedFormFactors, selectedWattages, selectedMemorySpeeds, selectedStorageCapacities, priceMinNum, priceMaxNum]);
 
-  const toggleSocket = (val: string) =>
-    setSelectedSockets((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
-  const toggleFormFactor = (val: string) =>
-    setSelectedFormFactors((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
-  const toggleWattage = (val: string) =>
-    setSelectedWattages((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
-  const toggleMemorySpeed = (val: string) =>
-    setSelectedMemorySpeeds((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
-  const toggleStorageCapacity = (val: string) =>
-    setSelectedStorageCapacities((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val],
-    );
+  /* ── Toggle helpers ── */
+  const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>) =>
+    (val: string) => setter((prev) => prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]);
 
+  const toggleSocket          = toggle(setSelectedSockets);
+  const toggleFormFactor      = toggle(setSelectedFormFactors);
+  const toggleWattage         = toggle(setSelectedWattages);
+  const toggleMemorySpeed     = toggle(setSelectedMemorySpeeds);
+  const toggleStorageCapacity = toggle(setSelectedStorageCapacities);
+
+  /* ── Active filter state helpers ── */
   const hasActiveFilters =
-    !!category ||
-    inStockOnly ||
-    selectedSockets.length > 0 ||
-    selectedFormFactors.length > 0 ||
-    selectedWattages.length > 0 ||
-    selectedMemorySpeeds.length > 0 ||
+    !!category || inStockOnly ||
+    selectedSockets.length > 0 || selectedFormFactors.length > 0 ||
+    selectedWattages.length > 0 || selectedMemorySpeeds.length > 0 ||
     selectedStorageCapacities.length > 0 ||
-    priceMinNum !== null ||
-    priceMaxNum !== null;
+    priceMinNum !== null || priceMaxNum !== null;
 
   const clearFilters = () => {
     setCategory(undefined);
@@ -226,13 +272,25 @@ export default function Products() {
     setSelectedWattages([]);
     setSelectedMemorySpeeds([]);
     setSelectedStorageCapacities([]);
-    setPriceMin("");
-    setPriceMax("");
+    setPriceMinDraft("");
+    setPriceMaxDraft("");
     window.history.pushState({}, "", "/products");
   };
 
+  const activeFilterCount =
+    (category ? 1 : 0) +
+    selectedSockets.length + selectedFormFactors.length +
+    selectedWattages.length + selectedMemorySpeeds.length +
+    selectedStorageCapacities.length + (inStockOnly ? 1 : 0);
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FILTER SIDEBAR
+     Renders inside both the desktop aside and the mobile slide-over.
+     ───────────────────────────────────────────────────────────────────── */
   const FilterSidebar = () => (
     <div className="space-y-8">
+
+      {/* ── Categories ── */}
       <div>
         <div className="flex justify-between items-center border-b border-border pb-2 mb-3">
           <h3 className="font-heading font-bold uppercase tracking-wider">Categories</h3>
@@ -248,10 +306,7 @@ export default function Products() {
         <ul className="space-y-2 font-mono text-sm">
           <li>
             <button
-              onClick={() => {
-                setCategory(undefined);
-                window.history.pushState({}, "", "/products");
-              }}
+              onClick={() => { setCategory(undefined); window.history.pushState({}, "", "/products"); }}
               className={`w-full text-left flex justify-between py-1 transition-colors ${!category ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
             >
               <span>ALL HARDWARE</span>
@@ -260,10 +315,7 @@ export default function Products() {
           {categoriesData?.categories.map((c) => (
             <li key={c.id}>
               <button
-                onClick={() => {
-                  setCategory(c.slug);
-                  window.history.pushState({}, "", `/products?category=${c.slug}`);
-                }}
+                onClick={() => { setCategory(c.slug); window.history.pushState({}, "", `/products?category=${c.slug}`); }}
                 className={`w-full text-left flex justify-between py-1 transition-colors ${category === c.slug ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
               >
                 <span className="uppercase">{c.name}</span>
@@ -274,48 +326,43 @@ export default function Products() {
         </ul>
       </div>
 
+      {/* ── Spec filters (fully dynamic — hidden when no options exist) ── */}
       <MultiSelectFilter
         title="Socket"
-        options={SOCKET_OPTIONS}
+        options={filterOptions.sockets}
         selected={selectedSockets}
         onToggle={toggleSocket}
       />
-
       <MultiSelectFilter
         title="Form Factor"
-        options={FORM_FACTOR_OPTIONS}
+        options={filterOptions.formFactors}
         selected={selectedFormFactors}
         onToggle={toggleFormFactor}
       />
-
       <MultiSelectFilter
         title="Wattage"
-        options={WATTAGE_OPTIONS}
+        options={filterOptions.wattages}
         selected={selectedWattages}
         onToggle={toggleWattage}
       />
-
       <MultiSelectFilter
         title="Memory Speed"
-        options={MEMORY_SPEED_OPTIONS}
+        options={filterOptions.memorySpeeds}
         selected={selectedMemorySpeeds}
         onToggle={toggleMemorySpeed}
       />
-
       <MultiSelectFilter
         title="Storage Capacity"
-        options={STORAGE_CAPACITY_OPTIONS}
+        options={filterOptions.storageCapacities}
         selected={selectedStorageCapacities}
         onToggle={toggleStorageCapacity}
       />
 
+      {/* ── Price Range ── */}
       <div>
-        <button
-          onClick={() => {}}
-          className="w-full flex justify-between items-center font-heading font-bold uppercase tracking-wider border-b border-border pb-2 mb-3"
-        >
+        <div className="w-full flex justify-between items-center font-heading font-bold uppercase tracking-wider border-b border-border pb-2 mb-3">
           <span>Price Range</span>
-        </button>
+        </div>
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="flex-1">
@@ -323,8 +370,8 @@ export default function Products() {
               <input
                 type="number"
                 min={0}
-                value={priceMin}
-                onChange={(e) => setPriceMin(e.target.value)}
+                value={priceMinDraft}
+                onChange={(e) => setPriceMinDraft(e.target.value)}
                 placeholder="0"
                 className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
               />
@@ -335,16 +382,16 @@ export default function Products() {
               <input
                 type="number"
                 min={0}
-                value={priceMax}
-                onChange={(e) => setPriceMax(e.target.value)}
+                value={priceMaxDraft}
+                onChange={(e) => setPriceMaxDraft(e.target.value)}
                 placeholder="∞"
                 className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary transition-colors"
               />
             </div>
           </div>
-          {(priceMin || priceMax) && (
+          {(priceMinDraft || priceMaxDraft) && (
             <button
-              onClick={() => { setPriceMin(""); setPriceMax(""); }}
+              onClick={() => { setPriceMinDraft(""); setPriceMaxDraft(""); }}
               className="font-mono text-xs text-muted-foreground hover:text-primary transition-colors"
             >
               Clear range
@@ -353,12 +400,13 @@ export default function Products() {
         </div>
       </div>
 
+      {/* ── Availability ── */}
       <div>
         <h3 className="font-heading font-bold uppercase tracking-wider mb-3 border-b border-border pb-2">
           Availability
         </h3>
         <label className="flex items-center gap-3 cursor-pointer group">
-          <div className="relative flex items-center justify-center w-4 h-4 border border-border bg-background rounded-sm group-hover:border-primary transition-colors">
+          <div className="relative flex items-center justify-center w-4 h-4 border border-border bg-background rounded-sm hover:border-primary transition-colors">
             <input
               type="checkbox"
               className="sr-only"
@@ -367,7 +415,7 @@ export default function Products() {
             />
             {inStockOnly && <div className="w-2.5 h-2.5 bg-primary rounded-sm" />}
           </div>
-          <span className="font-mono text-sm text-muted-foreground group-hover:text-foreground transition-colors uppercase">
+          <span className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors uppercase">
             In Stock Only
           </span>
         </label>
@@ -375,18 +423,14 @@ export default function Products() {
     </div>
   );
 
-  const activeFilterCount =
-    (category ? 1 : 0) +
-    selectedSockets.length +
-    selectedFormFactors.length +
-    selectedWattages.length +
-    selectedMemorySpeeds.length +
-    selectedStorageCapacities.length +
-    (inStockOnly ? 1 : 0);
-
+  /* ─────────────────────────────────────────────────────────────────────
+     PAGE RENDER
+     ───────────────────────────────────────────────────────────────────── */
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+
+        {/* Page header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
             <h1 className="text-4xl md:text-6xl font-heading font-bold uppercase tracking-tighter mb-2">
@@ -398,6 +442,7 @@ export default function Products() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Mobile filter trigger */}
             <button
               className="md:hidden flex items-center gap-2 px-4 py-2 border border-border rounded-sm font-mono text-sm relative"
               onClick={() => setMobileFiltersOpen(true)}
@@ -410,6 +455,7 @@ export default function Products() {
               )}
             </button>
 
+            {/* Sort dropdown */}
             <div ref={sortRef} className="relative">
               <button
                 onClick={() => setSortOpen((o) => !o)}
@@ -433,9 +479,7 @@ export default function Products() {
                         key={opt}
                         onClick={() => { setSortBy(opt); setSortOpen(false); }}
                         className={`w-full text-left px-4 py-2.5 font-mono text-sm uppercase transition-colors ${
-                          sortBy === opt
-                            ? "bg-primary/10 text-primary"
-                            : "text-foreground hover:bg-muted/50"
+                          sortBy === opt ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted/50"
                         }`}
                       >
                         {SORT_LABELS[opt]}
@@ -448,6 +492,7 @@ export default function Products() {
           </div>
         </div>
 
+        {/* Layout: sidebar + grid */}
         <div className="flex flex-col md:flex-row gap-12">
           <aside className="hidden md:block w-64 shrink-0">
             <FilterSidebar />
@@ -456,11 +501,7 @@ export default function Products() {
           <div className="flex-1">
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Array(6)
-                  .fill(0)
-                  .map((_, i) => (
-                    <ProductCardSkeleton key={i} />
-                  ))}
+                {Array(6).fill(0).map((_, i) => <ProductCardSkeleton key={i} />)}
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-sm bg-card/30">
@@ -471,10 +512,7 @@ export default function Products() {
                 <p className="text-muted-foreground font-mono text-sm mb-6">
                   Adjust your search parameters to locate hardware.
                 </p>
-                <button
-                  onClick={clearFilters}
-                  className="text-primary font-mono text-sm hover:underline uppercase"
-                >
+                <button onClick={clearFilters} className="text-primary font-mono text-sm hover:underline uppercase">
                   Reset Filters
                 </button>
               </div>
@@ -487,13 +525,10 @@ export default function Products() {
                 )}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 auto-rows-[220px] gap-4">
                   {filteredProducts.map((product, i) => {
-                    const isBig = i % 7 === 0;
+                    const isBig  = i % 7 === 0;
                     const isTall = i % 7 === 3;
                     return (
-                      <div
-                        key={product.id}
-                        className={`${isBig ? "col-span-2 row-span-2" : isTall ? "row-span-2" : "col-span-1 row-span-1"}`}
-                      >
+                      <div key={product.id} className={`${isBig ? "col-span-2 row-span-2" : isTall ? "row-span-2" : "col-span-1 row-span-1"}`}>
                         <ProductCard product={product} fillContainer />
                       </div>
                     );
@@ -505,29 +540,23 @@ export default function Products() {
         </div>
       </div>
 
+      {/* Mobile filter slide-over */}
       <AnimatePresence>
         {mobileFiltersOpen && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 md:hidden"
               onClick={() => setMobileFiltersOpen(false)}
             />
             <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 20 }}
               className="fixed inset-y-0 right-0 w-4/5 max-w-sm bg-card border-l border-border z-50 p-6 overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-8 border-b border-border pb-4">
                 <h2 className="font-heading font-bold text-xl uppercase">Filters</h2>
-                <button
-                  onClick={() => setMobileFiltersOpen(false)}
-                  className="p-2 -mr-2 text-muted-foreground hover:text-foreground"
-                >
+                <button onClick={() => setMobileFiltersOpen(false)} className="p-2 -mr-2 text-muted-foreground hover:text-foreground">
                   <X className="w-5 h-5" />
                 </button>
               </div>

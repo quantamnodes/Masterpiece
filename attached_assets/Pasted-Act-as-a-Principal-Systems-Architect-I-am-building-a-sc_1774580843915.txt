@@ -1,0 +1,45 @@
+Act as a Principal Systems Architect. I am building a scalable, provider-agnostic SaaS platform. I need to implement the Factory/Strategy Pattern to create a universal switchboard for my database and payment integrations.
+
+The Stack: [Insert your exact framework here, e.g., Next.js 14 App Router, React, Node.js]
+
+Core Architectural Rule: Do NOT hardcode any specific database or payment logic into the frontend or main API routes. Everything must route through a "Service Layer" switchboard that reads the active provider from the .env file.
+
+Please generate the complete backend architecture, folder structure, and code for the following:
+
+1. The Environment Configuration (.env.example):
+
+Create a template .env file with ACTIVE_DATABASE (e.g., 'supabase', 'mongodb') and ACTIVE_PAYMENT (e.g., 'stripe', 'amarpay').
+
+Include placeholder variables for the necessary API keys, secrets, and webhook signing secrets for all providers mentioned.
+
+2. The Database Service Layer (services/db/):
+
+Create adapter files: supabaseAdapter.js and mongoAdapter.js.
+
+Create a main switchboard: dbService.js that exports getDbAdapter() based on process.env.ACTIVE_DATABASE.
+
+Both adapters must implement these exact async methods:
+
+saveTransactionIntent(userEmail, amount): Logs the attempt before payment.
+
+grantUserAccess(userEmail, transactionId): Upgrades the user's account after successful payment.
+
+3. The Payment Service Layer (services/payment/):
+
+Create adapter files: stripeAdapter.js and amarpayAdapter.js.
+
+Create a main switchboard: paymentService.js that exports getPaymentAdapter() based on process.env.ACTIVE_PAYMENT.
+
+Both adapters must implement these exact async methods:
+
+createCheckoutSession(amount, currency, userEmail): Returns a checkout URL.
+
+verifyWebhook(requestBody, signatureHeader): Verifies the cryptographic signature of the webhook and returns a standardized object: { status: 'success' | 'failed', transactionId, userEmail }.
+
+4. The Universal API Routes (The magic):
+
+Route 1: /api/checkout (POST): This route must initialize the dbService to save the intent, then call the paymentService to generate the checkout session, and return the URL to the frontend.
+
+Route 2: /api/webhook (POST): This is the crucial fulfillment route. It must receive the ping from the payment provider, pass the raw data to paymentService.verifyWebhook(), and IF successful, immediately call dbService.grantUserAccess() to fulfill the order.
+
+Please output the exact folder structure and the complete, production-ready code for every file mentioned above. Include error handling for missing .env variables.

@@ -1,6 +1,6 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
-import { productsTable, categoriesTable } from "@workspace/db";
+import { productsTable, categoriesTable, usersTable } from "@workspace/db";
 import { eq, ilike, and, gte, lte, gt, sql } from "drizzle-orm";
 
 const router: IRouter = Router();
@@ -29,6 +29,38 @@ function formatProduct(p: ProductRow) {
     createdAt: p.createdAt.toISOString(),
   };
 }
+
+/* ── Auth helpers ── */
+
+async function requireOwnerOrManager(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
+  if (!user || (user.role !== "owner" && user.role !== "admin" && user.role !== "manager")) {
+    res.status(403).json({ error: "Manager or Owner access required" });
+    return;
+  }
+  next();
+}
+
+async function requireOwner(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) {
+    res.status(401).json({ error: "Not authenticated" });
+    return;
+  }
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.session.userId)).limit(1);
+  if (!user || (user.role !== "owner" && user.role !== "admin")) {
+    res.status(403).json({ error: "Owner access required" });
+    return;
+  }
+  next();
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   PRODUCTS — READ
+   ───────────────────────────────────────────────────────────────────────── */
 
 router.get("/products", async (req, res) => {
   try {
@@ -140,6 +172,55 @@ router.get("/products", async (req, res) => {
   }
 });
 
+/* ─────────────────────────────────────────────────────────────────────────
+   FILTER OPTIONS
+   Scans all products and returns unique spec values grouped by spec name.
+   Used by the Products page sidebar to build dynamic filter checkboxes.
+   ───────────────────────────────────────────────────────────────────────── */
+
+router.get("/products/filter-options", async (req, res) => {
+  try {
+    const allProducts = await db.select({ specs: productsTable.specs }).from(productsTable);
+
+    type Spec = { name: string; value: string };
+
+    /* Map from canonical filter key → set of unique values */
+    const sockets = new Set<string>();
+    const formFactors = new Set<string>();
+    const wattages = new Set<string>();
+    const memorySpeeds = new Set<string>();
+    const storageCapacities = new Set<string>();
+
+    for (const { specs } of allProducts) {
+      const specList: Spec[] = Array.isArray(specs) ? (specs as Spec[]) : [];
+      for (const s of specList) {
+        const name = s.name.toLowerCase().trim();
+        const val = s.value.trim();
+        if (!val) continue;
+
+        if (name.includes("socket")) sockets.add(val);
+        if (name.includes("form") || name.includes("factor")) formFactors.add(val);
+        if (name === "wattage") wattages.add(val);
+        if (name === "speed" || name.includes("memory speed")) memorySpeeds.add(val);
+        if (name === "capacity") storageCapacities.add(val);
+      }
+    }
+
+    const sort = (s: Set<string>) => [...s].sort((a, b) => a.localeCompare(b));
+
+    res.json({
+      sockets: sort(sockets),
+      formFactors: sort(formFactors),
+      wattages: sort(wattages),
+      memorySpeeds: sort(memorySpeeds),
+      storageCapacities: sort(storageCapacities),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error getting filter options");
+    res.status(500).json({ error: "internal_error", message: "Failed to get filter options" });
+  }
+});
+
 router.get("/products/:id", async (req, res) => {
   try {
     const id = parseInt(req.params["id"] ?? "0");
@@ -218,7 +299,6 @@ const COMPATIBLE_CATEGORIES: Record<string, string[]> = {
   psus: ["gpus", "cpus"],
 };
 
-// GET /products/:id/similar — same category, sorted by price (expensive first)
 router.get("/products/:id/similar", async (req, res) => {
   try {
     const id = parseInt(req.params["id"] ?? "0");
@@ -232,7 +312,6 @@ router.get("/products/:id/similar", async (req, res) => {
       .where(and(eq(productsTable.categorySlug, source.categorySlug), sql`${productsTable.id} != ${id}`))
       .limit(12);
 
-    // Sort by price desc (premium options first)
     similar.sort((a, b) => parseFloat(b.basePrice) - parseFloat(a.basePrice));
 
     return res.json({ products: similar.slice(0, 4).map(formatProduct) });
@@ -241,7 +320,6 @@ router.get("/products/:id/similar", async (req, res) => {
   }
 });
 
-// GET /products/:id/compatible — cross-category compatible hardware
 router.get("/products/:id/compatible", async (req, res) => {
   try {
     const id = parseInt(req.params["id"] ?? "0");
@@ -252,7 +330,6 @@ router.get("/products/:id/compatible", async (req, res) => {
     const compatCats = COMPATIBLE_CATEGORIES[source.categorySlug] || [];
     if (compatCats.length === 0) return res.json({ products: [] });
 
-    // Fetch 2 from each compatible category
     const results: (typeof productsTable.$inferSelect)[] = [];
     for (const cat of compatCats.slice(0, 2)) {
       const catProducts = await db
@@ -268,6 +345,10 @@ router.get("/products/:id/compatible", async (req, res) => {
     return res.status(500).json({ error: "Failed to get compatible products" });
   }
 });
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CATEGORIES — READ
+   ───────────────────────────────────────────────────────────────────────── */
 
 router.get("/categories", async (req, res) => {
   try {
@@ -295,6 +376,118 @@ router.get("/categories", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Error listing categories");
     res.status(500).json({ error: "internal_error", message: "Failed to list categories" });
+  }
+});
+
+/* ─────────────────────────────────────────────────────────────────────────
+   CATEGORIES — WRITE (owner / manager only)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* POST /categories — create a new category */
+router.post("/categories", requireOwnerOrManager, async (req, res) => {
+  try {
+    const { name, slug, description } = req.body as {
+      name?: string; slug?: string; description?: string;
+    };
+
+    if (!name || !slug) {
+      res.status(400).json({ error: "bad_request", message: "Name and slug are required" });
+      return;
+    }
+
+    const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/^-|-$/g, "");
+
+    const existing = await db
+      .select()
+      .from(categoriesTable)
+      .where(eq(categoriesTable.slug, cleanSlug))
+      .limit(1);
+
+    if (existing.length > 0) {
+      res.status(409).json({ error: "conflict", message: "A category with this slug already exists" });
+      return;
+    }
+
+    const [created] = await db
+      .insert(categoriesTable)
+      .values({ name, slug: cleanSlug, description: description || "" })
+      .returning();
+
+    res.status(201).json(created);
+  } catch (err) {
+    req.log.error({ err }, "Error creating category");
+    res.status(500).json({ error: "internal_error", message: "Failed to create category" });
+  }
+});
+
+/* PUT /categories/:id — update name / description (owner only) */
+router.put("/categories/:id", requireOwner, async (req, res) => {
+  try {
+    const id = parseInt(req.params["id"] ?? "0");
+    if (isNaN(id)) {
+      res.status(400).json({ error: "bad_request", message: "Invalid category ID" });
+      return;
+    }
+
+    const { name, description } = req.body as { name?: string; description?: string };
+    if (!name) {
+      res.status(400).json({ error: "bad_request", message: "Name is required" });
+      return;
+    }
+
+    const [updated] = await db
+      .update(categoriesTable)
+      .set({ name, description: description ?? "" })
+      .where(eq(categoriesTable.id, id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "not_found", message: "Category not found" });
+      return;
+    }
+
+    res.json(updated);
+  } catch (err) {
+    req.log.error({ err }, "Error updating category");
+    res.status(500).json({ error: "internal_error", message: "Failed to update category" });
+  }
+});
+
+/* DELETE /categories/:id — delete category (owner only) */
+router.delete("/categories/:id", requireOwner, async (req, res) => {
+  try {
+    const id = parseInt(req.params["id"] ?? "0");
+    if (isNaN(id)) {
+      res.status(400).json({ error: "bad_request", message: "Invalid category ID" });
+      return;
+    }
+
+    /* Check if any products are still using this category */
+    const [cat] = await db.select().from(categoriesTable).where(eq(categoriesTable.id, id)).limit(1);
+    if (!cat) {
+      res.status(404).json({ error: "not_found", message: "Category not found" });
+      return;
+    }
+
+    const usedBy = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productsTable)
+      .where(eq(productsTable.categorySlug, cat.slug));
+
+    const count = usedBy[0]?.count ?? 0;
+    if (count > 0) {
+      res.status(409).json({
+        error: "in_use",
+        message: `Cannot delete — ${count} product(s) use this category. Reassign them first.`,
+      });
+      return;
+    }
+
+    await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "Error deleting category");
+    res.status(500).json({ error: "internal_error", message: "Failed to delete category" });
   }
 });
 
