@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { db } from "@workspace/db";
-import { productsTable, categoriesTable, usersTable } from "@workspace/db";
-import { eq, ilike, and, gte, lte, gt, sql } from "drizzle-orm";
+import { productsTable, categoriesTable, usersTable, productSaleEventsTable } from "@workspace/db";
+import { eq, ilike, and, gte, lte, gt, sql, count } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -218,6 +218,23 @@ router.get("/products/filter-options", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Error getting filter options");
     res.status(500).json({ error: "internal_error", message: "Failed to get filter options" });
+  }
+});
+
+// GET /products/velocity — returns salesLast24h count per product id (must be before /:id)
+router.get("/products/velocity", async (_req, res) => {
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const rows = await db
+      .select({ productId: productSaleEventsTable.productId, total: count() })
+      .from(productSaleEventsTable)
+      .where(gte(productSaleEventsTable.soldAt, since))
+      .groupBy(productSaleEventsTable.productId);
+    const map: Record<number, number> = {};
+    for (const r of rows) map[r.productId] = Number(r.total);
+    return res.json(map);
+  } catch {
+    return res.status(500).json({ error: "Failed to fetch velocity data" });
   }
 });
 
@@ -490,5 +507,6 @@ router.delete("/categories/:id", requireOwner, async (req, res) => {
     res.status(500).json({ error: "internal_error", message: "Failed to delete category" });
   }
 });
+
 
 export default router;

@@ -20,6 +20,10 @@ import checkoutRouter from "./checkout";
 import webhookRouter from "./webhook";
 import contactRouter from "./contact";
 import customerBenefitsRouter from "./customer-benefits";
+import searchSlangRouter from "./search-slang";
+import compatibilityGamesRouter from "./compatibility-games";
+import bundlesRouter from "./bundles";
+import codEscrowRouter from "./cod-escrow";
 
 const router: IRouter = Router();
 
@@ -44,5 +48,9 @@ router.use(checkoutRouter);
 router.use(webhookRouter);
 router.use(contactRouter);
 router.use(customerBenefitsRouter);
+router.use(searchSlangRouter);
+router.use(compatibilityGamesRouter);
+router.use(bundlesRouter);
+router.use(codEscrowRouter);
 
 export default router;

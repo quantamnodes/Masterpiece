@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, ordersTable, usersTable } from "@workspace/db";
+import { db, ordersTable, usersTable, cartItemsTable, cartSessionsTable, productSaleEventsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 
 const router = Router();
@@ -34,6 +34,7 @@ router.post("/orders", requireAuth, async (req, res) => {
       fulfillmentType = "delivery",
       branchId = null,
       deliveryFee = 0,
+      cartItems = [],
     } = req.body;
 
     if (!totalAmount || !itemCount) return res.status(400).json({ error: "Missing order details" });
@@ -78,6 +79,17 @@ router.post("/orders", requireAuth, async (req, res) => {
           ),
         })
         .where(eq(usersTable.id, req.session.userId!));
+    }
+
+    // Record product sale events for velocity heatmap
+    if (Array.isArray(cartItems) && cartItems.length > 0) {
+      try {
+        await db.insert(productSaleEventsTable).values(
+          cartItems
+            .filter((ci: any) => ci.productId && ci.quantity)
+            .map((ci: any) => ({ productId: Number(ci.productId), quantity: Number(ci.quantity) }))
+        );
+      } catch { /* non-fatal */ }
     }
 
     return res.status(201).json({ order, pointsEarned });

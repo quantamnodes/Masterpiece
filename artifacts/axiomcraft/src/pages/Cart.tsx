@@ -4,7 +4,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useCartManager } from "@/hooks/use-cart-manager";
 import {
   Trash2, ArrowRight, ShieldAlert, Cpu, Bell, BellRing,
-  Truck, Store, CheckCircle2, Star,
+  Truck, Store, CheckCircle2, Star, Lock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserStore } from "@/store/user-store";
@@ -26,9 +26,19 @@ export default function Cart() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
+  // CoD Escrow state
+  const [escrow, setEscrow] = useState<{ enabled: boolean; highValueThreshold: number; commitmentFeePct: number } | null>(null);
+
   // Order placement
   const [placing, setPlacing] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<{ orderId: number; pointsEarned: number } | null>(null);
+
+  useEffect(() => {
+    fetch(`${API}/cod-escrow`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setEscrow(d); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`${API}/branches`, { credentials: "include" })
@@ -89,6 +99,7 @@ export default function Cart() {
           fulfillmentType: fulfillment,
           branchId: fulfillment === "pickup" ? selectedBranchId : null,
           deliveryFee: fee,
+          cartItems: cart.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
         }),
       });
       if (!res.ok) throw new Error("Order failed");
@@ -335,6 +346,29 @@ export default function Cart() {
                     Earn ~{Math.floor(estimatedTotal)} loyalty points
                   </div>
                 )}
+
+                {/* CoD Escrow Notice */}
+                <AnimatePresence>
+                  {fulfillment === "delivery" && escrow?.enabled && estimatedTotal >= escrow.highValueThreshold && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="border border-amber-400/30 bg-amber-400/5 rounded-sm p-3 space-y-1">
+                        <div className="flex items-center gap-2 font-mono text-xs font-bold text-amber-400 uppercase">
+                          <Lock className="w-3.5 h-3.5" /> High-Value Order — CoD Escrow
+                        </div>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          Orders over ${escrow.highValueThreshold.toLocaleString()} require a {escrow.commitmentFeePct}% digital commitment fee
+                          (${Math.ceil(estimatedTotal * escrow.commitmentFeePct / 100).toLocaleString()}) to confirm Cash-on-Delivery.
+                          This fee is fully refunded upon successful delivery.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <button
                   onClick={handlePlaceOrder}

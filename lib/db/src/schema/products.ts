@@ -39,6 +39,7 @@ export const productsTable = pgTable(
     specs: jsonb("specs").notNull().default([]),
     variants: jsonb("variants").notNull().default([]),
     tags: jsonb("tags").notNull().default([]),
+    performanceNotes: jsonb("performance_notes").notNull().default([]),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [

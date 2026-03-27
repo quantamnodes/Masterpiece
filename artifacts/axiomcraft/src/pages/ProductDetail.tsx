@@ -10,7 +10,7 @@ import { StockBadge } from "@/components/StockBadge";
 import { HoldForMeModal } from "@/components/HoldForMeModal";
 import { ReviewVoteButtons } from "@/components/ReviewVoteButtons";
 import { ReviewSummary } from "@/components/ReviewSummary";
-import { ShoppingCart, ChevronLeft, ShieldCheck, Truck, Cpu, Zap, Bell, BellRing, CheckCircle2, BookmarkCheck, Star, Camera, X } from "lucide-react";
+import { ShoppingCart, ChevronLeft, ShieldCheck, Truck, Cpu, Zap, Bell, BellRing, CheckCircle2, BookmarkCheck, Star, Camera, X, Gamepad2, TrendingUp, Flame, Package2, ChevronDown } from "lucide-react";
 import { useRecentlyViewedStore } from "@/store/recently-viewed-store";
 import { useUserStore } from "@/store/user-store";
 import { useToast } from "@/hooks/use-toast";
@@ -158,6 +158,16 @@ export default function ProductDetail() {
   const [newReview, setNewReview] = useState({ rating: 5, title: "", body: "", photoUrl: "" });
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  /* Velocity heatmap */
+  const [velocityMap, setVelocityMap] = useState<Record<number, number>>({});
+  /* "Will it Run?" */
+  interface CompatGame { id: number; name: string; slug: string; categorySlug: string; specField: string; minSpec: string; recSpec: string; imageUrl: string; }
+  const [compatGames, setCompatGames] = useState<CompatGame[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  /* Bundle membership */
+  interface BundleRef { id: number; name: string; slug: string; discountPct: number; badgeText: string; }
+  const [productBundles, setProductBundles] = useState<BundleRef[]>([]);
+
   const imageRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: imageRef, offset: ["start start", "end start"] });
   const imageScale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
@@ -229,6 +239,30 @@ export default function ProductDetail() {
     } finally {
       setSubmittingReview(false); }
   };
+
+  // Fetch velocity, compat games, and bundles when product loads
+  useEffect(() => {
+    fetch(`${API}/products/velocity`)
+      .then((r) => r.ok ? r.json() : {})
+      .then(setVelocityMap)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!product) return;
+    Promise.all([
+      fetch(`${API}/compatibility-games`).then((r) => r.ok ? r.json() : []),
+      fetch(`${API}/bundles`).then((r) => r.ok ? r.json() : []),
+    ]).then(([games, bundles]: [CompatGame[], any[]]) => {
+      const filtered = games.filter((g) => g.active && g.categorySlug === product.categorySlug);
+      setCompatGames(filtered);
+      if (filtered.length > 0) setSelectedGameId(filtered[0].id);
+      const myBundles = bundles
+        .filter((b: any) => b.items?.some((i: any) => i.productId === product.id))
+        .map((b: any) => ({ id: b.id, name: b.name, slug: b.slug, discountPct: b.discountPct, badgeText: b.badgeText }));
+      setProductBundles(myBundles);
+    }).catch(() => {});
+  }, [product?.id]);
 
   // Track recently viewed
   useEffect(() => {
@@ -595,6 +629,43 @@ export default function ProductDetail() {
                 </motion.p>
               )}
 
+              {/* Scarcity Heatmap */}
+              {(() => {
+                const v = velocityMap[product.id] || 0;
+                if (v === 0) return null;
+                const pct = Math.min((v / 20) * 100, 100);
+                const heat = v >= 15 ? "from-red-500 to-orange-500" : v >= 6 ? "from-orange-400 to-amber-400" : "from-amber-400 to-yellow-400";
+                const label = v >= 15 ? "🔥 Trending fast" : v >= 6 ? "High demand" : "Selling steadily";
+                return (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
+                    <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><Flame className="w-3.5 h-3.5 text-orange-400" /> {label}</span>
+                      <span>{v} sold in last 24h</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        className={`h-full rounded-full bg-gradient-to-r ${heat}`}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                      />
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
+              {/* Bundle badges */}
+              {productBundles.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap gap-2">
+                  {productBundles.map((b) => (
+                    <a key={b.id} href={`/bundles/${b.slug}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/40 text-primary font-mono text-xs uppercase tracking-wider rounded-sm hover:bg-primary/20 transition-colors">
+                      <Package2 className="w-3.5 h-3.5" />
+                      {b.badgeText} — {b.name} ({b.discountPct}% off)
+                    </a>
+                  ))}
+                </motion.div>
+              )}
+
               {isOutOfStock && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
@@ -673,6 +744,90 @@ export default function ProductDetail() {
                     {(product.specs as Array<{ name: string; value: string }>).map((spec, i) => (
                       <SpecRow key={i} spec={spec} index={i} />
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Performance Impact Notes */}
+              {(() => {
+                const notes = (product as any).performanceNotes as Array<{ label: string; value: string }> | undefined;
+                if (!notes || notes.length === 0) return null;
+                return (
+                  <div>
+                    <h3 className="text-2xl font-heading font-bold uppercase mb-4 flex items-center gap-2">
+                      <TrendingUp className="w-6 h-6 text-primary" /> Performance Impact
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {notes.map((n, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 10 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.08 }}
+                          className="bg-primary/5 border border-primary/20 rounded-sm px-4 py-3 flex items-center gap-3"
+                        >
+                          <TrendingUp className="w-4 h-4 text-primary shrink-0" />
+                          <div>
+                            <p className="font-mono text-sm font-bold text-primary">{n.value}</p>
+                            <p className="font-mono text-xs text-muted-foreground">{n.label}</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* "Will it Run?" Compatibility Checker */}
+              {compatGames.length > 0 && (
+                <div>
+                  <h3 className="text-2xl font-heading font-bold uppercase mb-4 flex items-center gap-2">
+                    <Gamepad2 className="w-6 h-6 text-primary" /> Will it Run?
+                  </h3>
+                  <div className="border border-border bg-card rounded-sm p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <label className="font-mono text-xs uppercase text-muted-foreground shrink-0">Select game</label>
+                      <div className="relative flex-1">
+                        <select
+                          value={selectedGameId ?? ""}
+                          onChange={(e) => setSelectedGameId(Number(e.target.value))}
+                          className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary appearance-none pr-8"
+                        >
+                          {compatGames.map((g) => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                    {(() => {
+                      const game = compatGames.find((g) => g.id === selectedGameId);
+                      if (!game) return null;
+                      const specs = (product.specs as Array<{ name: string; value: string }>) || [];
+                      const matchedSpec = specs.find((s) => s.name.toLowerCase().includes(game.specField.toLowerCase()));
+                      const specVal = matchedSpec?.value || "";
+                      const meetsMin = game.minSpec === "" || specVal.toLowerCase().includes(game.minSpec.toLowerCase()) || specVal >= game.minSpec;
+                      const meetsRec = game.recSpec === "" || specVal.toLowerCase().includes(game.recSpec.toLowerCase()) || specVal >= game.recSpec;
+                      const status = !specVal ? "unknown" : meetsRec ? "recommended" : meetsMin ? "minimum" : "below";
+                      const statusConfig = {
+                        recommended: { label: "Meets Recommended Specs", color: "text-emerald-400", border: "border-emerald-400/30", bg: "bg-emerald-400/5" },
+                        minimum:     { label: "Meets Minimum Specs",     color: "text-amber-400",   border: "border-amber-400/30",   bg: "bg-amber-400/5"   },
+                        below:       { label: "Below Minimum Specs",     color: "text-red-400",     border: "border-red-400/30",     bg: "bg-red-400/5"     },
+                        unknown:     { label: "Specs Not Comparable",    color: "text-muted-foreground", border: "border-border", bg: "bg-muted/10" },
+                      }[status];
+                      return (
+                        <motion.div key={game.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`border rounded-sm px-4 py-3 ${statusConfig.border} ${statusConfig.bg}`}>
+                          <p className={`font-mono font-bold text-sm ${statusConfig.color}`}>{statusConfig.label}</p>
+                          <div className="mt-2 font-mono text-xs text-muted-foreground space-y-0.5">
+                            {game.specField && <p>Checking: <span className="text-foreground">{game.specField}</span></p>}
+                            {game.minSpec && <p>Minimum: <span className="text-foreground">{game.minSpec}</span></p>}
+                            {game.recSpec && <p>Recommended: <span className="text-foreground">{game.recSpec}</span></p>}
+                            {specVal && <p>This product: <span className="text-foreground">{specVal}</span></p>}
+                          </div>
+                        </motion.div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

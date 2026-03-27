@@ -1,0 +1,52 @@
+Project Objective: > Build a headless e-commerce Next.js (App Router) application featuring an "Autonomous Programmatic SEO Engine." This engine dynamically generates high-performing, heavily technical landing pages based on live industry data and matches them with available inventory.
+
+Tech Stack:
+
+Frontend & Framework: Next.js 14 (App Router), React, Tailwind CSS, TypeScript.
+
+Database: Supabase (PostgreSQL) - Use Prisma ORM.
+
+AI Generation: OpenAI API (gpt-4o) for generating technical copy.
+
+Architecture: Incremental Static Regeneration (ISR) for fast page loads.
+
+Step 1: Database Setup (Supabase & Prisma)
+Create the following Prisma models:
+
+Product: Fields for id, name, category (e.g., GPU, Mouse, Prep Book), stock_count, price, and performance_specs (JSON).
+
+MarketTrend: Fields for id, topic, search_volume, trigger_event (e.g., "Game Update", "Exam Schedule").
+
+DynamicLandingPage: Fields for id, slug, title, technical_content (Text), associated_trend_id, and recommended_product_ids (Array).
+
+Action: Seed the database with mock products. Include items like 4K 60FPS capable GPUs, high-polling rate mice, and university admission math prep bundles targeted at NSU and BRAC syllabus standards.
+
+Step 2: The Trend Ingestion API (Mock)
+Create a Next.js API route (/api/cron/fetch-trends) that simulates scraping external data.
+Action: Have it return mock JSON payloads like:
+{ "trend": "CS2 recoil update", "intent": "high-polling mouse" } or
+{ "trend": "Battlefield 6 ultra graphics requirements released", "intent": "high-end GPU" }.
+
+Step 3: The AI Generation Logic
+Create a server-side function that does the following:
+
+Takes a newly detected trend from Step 2.
+
+Queries the Product database to find in-stock items that match the "intent".
+
+Calls the OpenAI API with a system prompt: "Write a highly technical, 300-word analysis of [Trend]. Then, explain exactly why [Matched Product] is the optimal purchase to address this update. Format in clean HTML."
+
+Saves the generated content, slug, and product relations into the DynamicLandingPage table.
+
+Step 4: Dynamic Frontend Routing
+Build a dynamic route at app/trends/[slug]/page.tsx.
+
+Fetch the data from DynamicLandingPage based on the slug.
+
+Display the AI-generated technical analysis.
+
+Underneath the analysis, render a "Live Inventory" component. This component must fetch real-time data from the Product table to show the exact stock levels and prices of the recommended gear.
+
+Implement ISR (revalidate every 3600 seconds) so the page caches for speed but updates stock counts regularly.
+
+Execution: Start by initializing the Next.js project and setting up the Prisma schema. Pause and ask for my confirmation before moving to the API routes.

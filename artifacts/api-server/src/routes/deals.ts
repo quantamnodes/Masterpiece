@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, productsTable } from "@workspace/db";
+import { db, productsTable, searchSlangTable } from "@workspace/db";
 import { isNotNull, sql } from "drizzle-orm";
 import { analyzeImageWithFallback } from "../services/vision/visionService";
 
@@ -29,20 +29,36 @@ router.get("/deals", async (req, res) => {
   }
 });
 
-// GET /search/suggest?q=... — autocomplete search suggestions
+// GET /search/suggest?q=... — autocomplete search suggestions (with slang expansion)
 router.get("/search/suggest", async (req, res) => {
   try {
     const q = String(req.query.q || "").trim().toLowerCase();
     if (q.length < 2) return res.json({ suggestions: [], similar: [] });
+
+    // Expand slang: check if any mapping matches the query or a word in it
+    const allSlang = await db.select().from(searchSlangTable);
+    const expandedTerms = new Set([q]);
+    for (const mapping of allSlang) {
+      if (q.includes(mapping.term) || mapping.term.includes(q)) {
+        for (const t of mapping.mapsTo.split(",").map((s) => s.trim().toLowerCase())) {
+          if (t) expandedTerms.add(t);
+        }
+      }
+    }
+    const searchTerms = Array.from(expandedTerms);
 
     const allProducts = await db.select().from(productsTable);
 
     const suggestions = allProducts
       .filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.shortDescription.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q),
+          searchTerms.some(
+            (term) =>
+              p.name.toLowerCase().includes(term) ||
+              p.shortDescription.toLowerCase().includes(term) ||
+              p.category.toLowerCase().includes(term) ||
+              (Array.isArray(p.tags) && (p.tags as string[]).some((t) => t.toLowerCase().includes(term))),
+          ),
       )
       .slice(0, 8)
       .map((p) => ({

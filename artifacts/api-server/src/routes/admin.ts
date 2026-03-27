@@ -39,7 +39,7 @@ router.post("/admin/products", requireAdmin, async (req, res) => {
   try {
     const {
       name, slug, categorySlug, category, shortDescription, description,
-      basePrice, salePrice, stock, sku, imageUrl, badge, specs, variants, tags,
+      basePrice, salePrice, stock, sku, imageUrl, badge, specs, variants, tags, performanceNotes,
     } = req.body;
 
     if (!name || !slug || !categorySlug || !category || !basePrice || !sku) {
@@ -59,6 +59,7 @@ router.post("/admin/products", requireAdmin, async (req, res) => {
       specs: specs || [],
       variants: variants || [],
       tags: tags || [],
+      performanceNotes: performanceNotes || [],
     }).returning();
 
     return res.status(201).json({ product: formatProduct(product) });
@@ -78,7 +79,7 @@ router.put("/admin/products/:id", requireAdmin, async (req, res) => {
 
     const {
       name, slug, categorySlug, category, shortDescription, description,
-      basePrice, salePrice, stock, sku, imageUrl, badge, specs, variants, tags,
+      basePrice, salePrice, stock, sku, imageUrl, badge, specs, variants, tags, performanceNotes,
     } = req.body;
 
     const [updated] = await db.update(productsTable).set({
@@ -97,6 +98,7 @@ router.put("/admin/products/:id", requireAdmin, async (req, res) => {
       ...(specs !== undefined && { specs }),
       ...(variants !== undefined && { variants }),
       ...(tags !== undefined && { tags }),
+      ...(performanceNotes !== undefined && { performanceNotes }),
     }).where(eq(productsTable.id, id)).returning();
 
     if (!updated) return res.status(404).json({ error: "Product not found" });

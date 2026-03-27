@@ -22,6 +22,7 @@ import Wishlist from "@/pages/Wishlist";
 import Dashboard from "@/pages/Dashboard";
 import ManagerPanel from "@/pages/ManagerPanel";
 import GatewaySettings from "@/pages/GatewaySettings";
+import Bundles from "@/pages/Bundles";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -69,6 +70,8 @@ function AppRoutes() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/manager" element={<ManagerPanel />} />
       <Route path="/admin/gateways" element={<GatewaySettings />} />
+      <Route path="/bundles" element={<Bundles />} />
+      <Route path="/bundles/:slug" element={<Bundles />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

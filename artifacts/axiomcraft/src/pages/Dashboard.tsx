@@ -14,6 +14,7 @@ import {
   Building2, Key, Copy, ToggleLeft, ToggleRight, MapPin, Phone, User,
   BarChart3, TrendingUp, Activity, Star, SlidersHorizontal, Boxes,
   Upload, Loader2, Mail, MessageSquare, Inbox, Eye, EyeOff,
+  BookType, ShoppingBag, Gamepad2, ShieldCheck,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -86,9 +87,13 @@ const EMPTY_FORM = {
   shortDescription: "", description: "", basePrice: "", salePrice: "",
   stock: "0", sku: "", imageUrl: "", badge: "",
   specs: [{ name: "", value: "" }],
+  performanceNotes: [] as Array<{ label: string; value: string }>,
 };
 
-type FormData = typeof EMPTY_FORM & { specs: Array<{ name: string; value: string }> };
+type FormData = typeof EMPTY_FORM & {
+  specs: Array<{ name: string; value: string }>;
+  performanceNotes: Array<{ label: string; value: string }>;
+};
 
 function ProductImageField({ imageUrl, slug, onChange }: { imageUrl: string; slug: string; onChange: (url: string) => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -182,6 +187,7 @@ function ProductForm({
     ...EMPTY_FORM,
     ...(initial || {}),
     specs: initial?.specs?.length ? initial.specs : [{ name: "", value: "" }],
+    performanceNotes: (initial as any)?.performanceNotes || [],
     basePrice: initial?.basePrice !== undefined ? String(initial.basePrice) : "",
     salePrice: initial?.salePrice !== undefined && initial.salePrice !== null ? String(initial.salePrice) : "",
     stock: initial?.stock !== undefined ? String(initial.stock) : "0",
@@ -211,9 +217,22 @@ function ProductForm({
   const addSpec = () => setForm((f) => ({ ...f, specs: [...f.specs, { name: "", value: "" }] }));
   const removeSpec = (i: number) => setForm((f) => ({ ...f, specs: f.specs.filter((_, idx) => idx !== i) }));
 
+  const setNote = (i: number, field: "label" | "value", v: string) =>
+    setForm((f) => {
+      const notes = [...f.performanceNotes];
+      notes[i] = { ...notes[i], [field]: v };
+      return { ...f, performanceNotes: notes };
+    });
+  const addNote = () => setForm((f) => ({ ...f, performanceNotes: [...f.performanceNotes, { label: "", value: "" }] }));
+  const removeNote = (i: number) => setForm((f) => ({ ...f, performanceNotes: f.performanceNotes.filter((_, idx) => idx !== i) }));
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ ...form, specs: form.specs.filter((s) => s.name && s.value) });
+    onSave({
+      ...form,
+      specs: form.specs.filter((s) => s.name && s.value),
+      performanceNotes: form.performanceNotes.filter((n) => n.label && n.value),
+    });
   };
 
   const inputCls = "w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors";
@@ -299,6 +318,32 @@ function ProductForm({
               <input className={`${inputCls} flex-1`} value={spec.name} onChange={(e) => setSpec(i, "name", e.target.value)} placeholder="Spec name (e.g. VRAM)" />
               <input className={`${inputCls} flex-1`} value={spec.value} onChange={(e) => setSpec(i, "value", e.target.value)} placeholder="Value (e.g. 24 GB)" />
               <button type="button" onClick={() => removeSpec(i)} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Performance Notes editor */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <label className={labelCls + " mb-0 flex items-center gap-1.5"}>
+            <TrendingUp className="w-3.5 h-3.5 text-primary" /> Performance Impact Notes
+          </label>
+          <button type="button" onClick={addNote} className="flex items-center gap-1 font-mono text-xs text-primary hover:underline">
+            <Plus className="w-3 h-3" /> Add note
+          </button>
+        </div>
+        {form.performanceNotes.length === 0 && (
+          <p className="font-mono text-xs text-muted-foreground">No notes yet. Add benchmark results and impact metrics here.</p>
+        )}
+        <div className="space-y-2">
+          {form.performanceNotes.map((note, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input className={`${inputCls} flex-1`} value={note.label} onChange={(e) => setNote(i, "label", e.target.value)} placeholder="Label (e.g. 4K Gaming FPS Boost)" />
+              <input className={`${inputCls} flex-1`} value={note.value} onChange={(e) => setNote(i, "value", e.target.value)} placeholder="Value (e.g. +40% over RTX 4090)" />
+              <button type="button" onClick={() => removeNote(i)} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -393,7 +438,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock" | "categories" | "contact" | "benefits">("overview");
+  const [tab, setTab] = useState<"overview" | "products" | "branches" | "codes" | "stock" | "categories" | "contact" | "benefits" | "slang" | "bundles" | "compat" | "cod">("overview");
 
   // Products state
   const [products, setProducts] = useState<Product[]>([]);
@@ -459,6 +504,35 @@ export default function Dashboard() {
     silverNext: 2000,
     goldNext: 10000,
   });
+
+  // Slang tab state
+  interface SlangTerm { id: number; term: string; mapsTo: string; active: boolean; }
+  const [slangTerms, setSlangTerms] = useState<SlangTerm[]>([]);
+  const [slangLoading, setSlangLoading] = useState(false);
+  const [slangForm, setSlangForm] = useState({ term: "", mapsTo: "" });
+  const [slangSaving, setSlangSaving] = useState(false);
+
+  // Bundles tab state
+  interface BundleItem { productId: number; quantity: number; }
+  interface Bundle { id: number; slug: string; name: string; description: string; active: boolean; discountPct: number; badgeText: string; imageUrl: string; items: BundleItem[]; }
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [bundlesLoading, setBundlesLoading] = useState(false);
+  const [bundleForm, setBundleForm] = useState({ slug: "", name: "", description: "", discountPct: "0", badgeText: "", imageUrl: "", items: [{ productId: "", quantity: "1" }] });
+  const [bundleFormMode, setBundleFormMode] = useState<"none" | "add">("none");
+  const [bundleSaving, setBundleSaving] = useState(false);
+
+  // Compat Games tab state
+  interface CompatGame { id: number; slug: string; name: string; categorySlug: string; specField: string; minSpec: string; recSpec: string; imageUrl: string; active: boolean; }
+  const [compatGames, setCompatGames] = useState<CompatGame[]>([]);
+  const [compatLoading, setCompatLoading] = useState(false);
+  const [compatForm, setCompatForm] = useState({ slug: "", name: "", categorySlug: "gpus", specField: "", minSpec: "", recSpec: "", imageUrl: "" });
+  const [compatFormMode, setCompatFormMode] = useState<"none" | "add">("none");
+  const [compatSaving, setCompatSaving] = useState(false);
+
+  // CoD Escrow tab state
+  const [codSettings, setCodSettings] = useState({ enabled: false, highValueThreshold: 2000, commitmentFeePct: 10 });
+  const [codLoading, setCodLoading] = useState(false);
+  const [codSaving, setCodSaving] = useState(false);
 
   // Sales data state
   const [salesData, setSalesData] = useState<{
@@ -658,7 +732,138 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (tab === "benefits") fetchBenefits();
+    if (tab === "slang") {
+      setSlangLoading(true);
+      fetch(`${API}/search/slang`).then(r => r.ok ? r.json() : []).then(setSlangTerms).catch(() => {}).finally(() => setSlangLoading(false));
+    }
+    if (tab === "bundles") {
+      setBundlesLoading(true);
+      fetch(`${API}/bundles/all`, { credentials: "include" }).then(r => r.ok ? r.json() : []).then(setBundles).catch(() => {}).finally(() => setBundlesLoading(false));
+    }
+    if (tab === "compat") {
+      setCompatLoading(true);
+      fetch(`${API}/compatibility-games`).then(r => r.ok ? r.json() : []).then(setCompatGames).catch(() => {}).finally(() => setCompatLoading(false));
+    }
+    if (tab === "cod") {
+      setCodLoading(true);
+      fetch(`${API}/cod-escrow`).then(r => r.ok ? r.json() : null).then(d => { if (d) setCodSettings(d); }).catch(() => {}).finally(() => setCodLoading(false));
+    }
   }, [tab, fetchBenefits]);
+
+  const handleSlangAdd = async () => {
+    if (!slangForm.term.trim() || !slangForm.mapsTo.trim()) return;
+    setSlangSaving(true);
+    try {
+      const res = await fetch(`${API}/search/slang`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(slangForm),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setSlangTerms(t => [d, ...t]);
+        setSlangForm({ term: "", mapsTo: "" });
+        toast({ title: "Slang term added" });
+      }
+    } finally { setSlangSaving(false); }
+  };
+
+  const handleSlangDelete = async (id: number) => {
+    await fetch(`${API}/search/slang/${id}`, { method: "DELETE", credentials: "include" });
+    setSlangTerms(t => t.filter(s => s.id !== id));
+    toast({ title: "Slang term removed" });
+  };
+
+  const handleBundleAdd = async () => {
+    setBundleSaving(true);
+    try {
+      const body = {
+        ...bundleForm,
+        discountPct: parseFloat(bundleForm.discountPct) || 0,
+        items: bundleForm.items.filter(i => i.productId).map(i => ({ productId: parseInt(i.productId), quantity: parseInt(i.quantity) || 1 })),
+      };
+      const res = await fetch(`${API}/bundles`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setBundles(bs => [d, ...bs]);
+        setBundleForm({ slug: "", name: "", description: "", discountPct: "0", badgeText: "", imageUrl: "", items: [{ productId: "", quantity: "1" }] });
+        setBundleFormMode("none");
+        toast({ title: "Bundle created" });
+      }
+    } finally { setBundleSaving(false); }
+  };
+
+  const handleBundleToggle = async (bundle: Bundle) => {
+    const res = await fetch(`${API}/bundles/${bundle.id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !bundle.active }),
+    });
+    if (res.ok) {
+      setBundles(bs => bs.map(b => b.id === bundle.id ? { ...b, active: !b.active } : b));
+    }
+  };
+
+  const handleBundleDelete = async (id: number) => {
+    await fetch(`${API}/bundles/${id}`, { method: "DELETE", credentials: "include" });
+    setBundles(bs => bs.filter(b => b.id !== id));
+    toast({ title: "Bundle deleted" });
+  };
+
+  const handleCompatAdd = async () => {
+    setCompatSaving(true);
+    try {
+      const res = await fetch(`${API}/compatibility-games`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(compatForm),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setCompatGames(gs => [d, ...gs]);
+        setCompatForm({ slug: "", name: "", categorySlug: "gpus", specField: "", minSpec: "", recSpec: "", imageUrl: "" });
+        setCompatFormMode("none");
+        toast({ title: "Compatibility game added" });
+      }
+    } finally { setCompatSaving(false); }
+  };
+
+  const handleCompatToggle = async (game: CompatGame) => {
+    const res = await fetch(`${API}/compatibility-games/${game.id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: !game.active }),
+    });
+    if (res.ok) setCompatGames(gs => gs.map(g => g.id === game.id ? { ...g, active: !g.active } : g));
+  };
+
+  const handleCompatDelete = async (id: number) => {
+    await fetch(`${API}/compatibility-games/${id}`, { method: "DELETE", credentials: "include" });
+    setCompatGames(gs => gs.filter(g => g.id !== id));
+    toast({ title: "Game removed" });
+  };
+
+  const handleCodSave = async () => {
+    setCodSaving(true);
+    try {
+      const res = await fetch(`${API}/cod-escrow`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(codSettings),
+      });
+      if (res.ok) toast({ title: "CoD Escrow settings saved" });
+    } finally { setCodSaving(false); }
+  };
 
   const handleContactSave = async () => {
     setContactSaving(true);
@@ -958,6 +1163,10 @@ export default function Dashboard() {
             { id: "categories", label: "Categories", icon: Layers },
             { id: "contact",    label: "Contact",    icon: MessageSquare },
             { id: "benefits",   label: "Benefits",   icon: Star },
+            { id: "slang",      label: "Slang",      icon: BookType },
+            { id: "bundles",    label: "Bundles",    icon: ShoppingBag },
+            { id: "compat",     label: "Will it Run",icon: Gamepad2 },
+            { id: "cod",        label: "CoD Escrow", icon: ShieldCheck },
           ] as const).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -2046,6 +2255,260 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ===================== SLANG TAB ===================== */}
+        {tab === "slang" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-heading font-bold text-xl uppercase tracking-wide flex items-center gap-2">
+                  <BookType className="w-5 h-5 text-primary" /> Smart Search Slang
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1 font-mono">Map slang terms to product names for search expansion.</p>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-sm p-5 mb-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Slang term</label>
+                  <input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="e.g. gpu for gaming" value={slangForm.term} onChange={e => setSlangForm(f => ({ ...f, term: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Maps to (comma-separated terms)</label>
+                  <input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="e.g. RTX, GeForce, graphics card" value={slangForm.mapsTo} onChange={e => setSlangForm(f => ({ ...f, mapsTo: e.target.value }))} />
+                </div>
+              </div>
+              <button onClick={handleSlangAdd} disabled={slangSaving} className="flex items-center gap-2 px-5 py-2 bg-primary text-black font-mono text-sm uppercase font-bold rounded-sm hover:bg-primary/90 transition-all disabled:opacity-50">
+                {slangSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add Term
+              </button>
+            </div>
+            {slangLoading ? (
+              <div className="flex items-center justify-center h-32 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…</div>
+            ) : (
+              <div className="space-y-2">
+                {slangTerms.length === 0 && <p className="font-mono text-sm text-muted-foreground">No slang terms configured yet.</p>}
+                {slangTerms.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 bg-card border border-border rounded-sm px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono text-sm font-bold text-foreground">{t.term}</p>
+                      <p className="font-mono text-xs text-muted-foreground">→ {t.mapsTo}</p>
+                    </div>
+                    <button onClick={() => handleSlangDelete(t.id)} className="text-muted-foreground hover:text-destructive transition-colors p-1.5"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ===================== BUNDLES TAB ===================== */}
+        {tab === "bundles" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-heading font-bold text-xl uppercase tracking-wide flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-primary" /> Creator / Student Bundles
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1 font-mono">Create curated hardware bundles with discounts.</p>
+              </div>
+              <button onClick={() => setBundleFormMode(bundleFormMode === "add" ? "none" : "add")} className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-mono text-sm uppercase font-bold rounded-sm hover:bg-primary/90 transition-all">
+                <Plus className="w-4 h-4" /> New Bundle
+              </button>
+            </div>
+            <AnimatePresence>
+              {bundleFormMode === "add" && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-6">
+                  <div className="bg-card border border-border rounded-sm p-5 space-y-4">
+                    <h3 className="font-mono font-bold uppercase text-sm tracking-wide">New Bundle</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {[
+                        { label: "Bundle Name", key: "name", placeholder: "e.g. Creator Pro Pack" },
+                        { label: "URL Slug", key: "slug", placeholder: "creator-pro-pack" },
+                        { label: "Badge Text", key: "badgeText", placeholder: "e.g. SAVE 15%" },
+                        { label: "Discount %", key: "discountPct", placeholder: "15" },
+                        { label: "Image URL", key: "imageUrl", placeholder: "https://..." },
+                      ].map(({ label, key, placeholder }) => (
+                        <div key={key}>
+                          <label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">{label}</label>
+                          <input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder={placeholder} value={(bundleForm as any)[key]} onChange={e => setBundleForm(f => ({ ...f, [key]: e.target.value }))} />
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Description</label>
+                      <textarea className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary resize-none" rows={2} value={bundleForm.description} onChange={e => setBundleForm(f => ({ ...f, description: e.target.value }))} />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="font-mono text-xs uppercase text-muted-foreground">Bundle Items (Product IDs)</label>
+                        <button type="button" onClick={() => setBundleForm(f => ({ ...f, items: [...f.items, { productId: "", quantity: "1" }] }))} className="font-mono text-xs text-primary hover:underline flex items-center gap-1"><Plus className="w-3 h-3" /> Add row</button>
+                      </div>
+                      {bundleForm.items.map((item, i) => (
+                        <div key={i} className="flex gap-2 mb-2">
+                          <input className="flex-1 bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="Product ID" type="number" value={item.productId} onChange={e => setBundleForm(f => ({ ...f, items: f.items.map((it, idx) => idx === i ? { ...it, productId: e.target.value } : it) }))} />
+                          <input className="w-20 bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="Qty" type="number" min="1" value={item.quantity} onChange={e => setBundleForm(f => ({ ...f, items: f.items.map((it, idx) => idx === i ? { ...it, quantity: e.target.value } : it) }))} />
+                          <button type="button" onClick={() => setBundleForm(f => ({ ...f, items: f.items.filter((_, idx) => idx !== i) }))} className="p-2 text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={handleBundleAdd} disabled={bundleSaving} className="flex items-center gap-2 px-5 py-2 bg-primary text-black font-mono text-sm uppercase font-bold rounded-sm hover:bg-primary/90 disabled:opacity-50">
+                        {bundleSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Create Bundle
+                      </button>
+                      <button onClick={() => setBundleFormMode("none")} className="px-4 py-2 border border-border font-mono text-sm text-muted-foreground rounded-sm hover:text-foreground">Cancel</button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {bundlesLoading ? (
+              <div className="flex items-center justify-center h-32 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…</div>
+            ) : (
+              <div className="space-y-3">
+                {bundles.length === 0 && <p className="font-mono text-sm text-muted-foreground">No bundles created yet.</p>}
+                {bundles.map(b => (
+                  <div key={b.id} className={`bg-card border rounded-sm px-4 py-4 flex items-center gap-4 ${b.active ? "border-border" : "border-border/40 opacity-60"}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono font-bold text-sm">{b.name} <span className="font-normal text-muted-foreground">/{b.slug}</span></p>
+                      <p className="font-mono text-xs text-muted-foreground">{b.discountPct}% off · {b.items?.length || 0} products · {b.badgeText}</p>
+                    </div>
+                    <button onClick={() => handleBundleToggle(b)} className={`px-3 py-1.5 font-mono text-xs uppercase rounded-sm border transition-colors ${b.active ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"}`}>
+                      {b.active ? "Active" : "Inactive"}
+                    </button>
+                    <button onClick={() => handleBundleDelete(b.id)} className="text-muted-foreground hover:text-destructive p-1.5"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ===================== COMPAT TAB ===================== */}
+        {tab === "compat" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-heading font-bold text-xl uppercase tracking-wide flex items-center gap-2">
+                  <Gamepad2 className="w-5 h-5 text-primary" /> Compatibility Games
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1 font-mono">Configure games for the "Will it Run?" checker on product pages.</p>
+              </div>
+              <button onClick={() => setCompatFormMode(compatFormMode === "add" ? "none" : "add")} className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-mono text-sm uppercase font-bold rounded-sm hover:bg-primary/90 transition-all">
+                <Plus className="w-4 h-4" /> Add Game
+              </button>
+            </div>
+            <AnimatePresence>
+              {compatFormMode === "add" && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-6">
+                  <div className="bg-card border border-border rounded-sm p-5 space-y-4">
+                    <h3 className="font-mono font-bold uppercase text-sm">New Game</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div><label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Game Name</label><input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="e.g. Cyberpunk 2077" value={compatForm.name} onChange={e => setCompatForm(f => ({ ...f, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-") }))} /></div>
+                      <div><label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Slug</label><input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" value={compatForm.slug} onChange={e => setCompatForm(f => ({ ...f, slug: e.target.value }))} /></div>
+                      <div><label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Category (applies to)</label><select className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" value={compatForm.categorySlug} onChange={e => setCompatForm(f => ({ ...f, categorySlug: e.target.value }))}>
+                        {CATEGORIES.map(c => <option key={c.slug} value={c.slug}>{c.label}</option>)}
+                      </select></div>
+                      <div><label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Spec field to compare</label><input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="e.g. VRAM" value={compatForm.specField} onChange={e => setCompatForm(f => ({ ...f, specField: e.target.value }))} /></div>
+                      <div><label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Minimum spec</label><input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="e.g. 8 GB" value={compatForm.minSpec} onChange={e => setCompatForm(f => ({ ...f, minSpec: e.target.value }))} /></div>
+                      <div><label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Recommended spec</label><input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="e.g. 16 GB" value={compatForm.recSpec} onChange={e => setCompatForm(f => ({ ...f, recSpec: e.target.value }))} /></div>
+                      <div className="sm:col-span-2"><label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Image URL (optional)</label><input className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary" placeholder="https://..." value={compatForm.imageUrl} onChange={e => setCompatForm(f => ({ ...f, imageUrl: e.target.value }))} /></div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={handleCompatAdd} disabled={compatSaving} className="flex items-center gap-2 px-5 py-2 bg-primary text-black font-mono text-sm uppercase font-bold rounded-sm hover:bg-primary/90 disabled:opacity-50">
+                        {compatSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Add Game
+                      </button>
+                      <button onClick={() => setCompatFormMode("none")} className="px-4 py-2 border border-border font-mono text-sm text-muted-foreground rounded-sm hover:text-foreground">Cancel</button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {compatLoading ? (
+              <div className="flex items-center justify-center h-32 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…</div>
+            ) : (
+              <div className="space-y-3">
+                {compatGames.length === 0 && <p className="font-mono text-sm text-muted-foreground">No games configured yet.</p>}
+                {compatGames.map(g => (
+                  <div key={g.id} className={`bg-card border rounded-sm px-4 py-4 flex items-center gap-4 ${g.active ? "border-border" : "border-border/40 opacity-60"}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-mono font-bold text-sm">{g.name}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{g.categorySlug} · {g.specField}: min {g.minSpec} / rec {g.recSpec}</p>
+                    </div>
+                    <button onClick={() => handleCompatToggle(g)} className={`px-3 py-1.5 font-mono text-xs uppercase rounded-sm border transition-colors ${g.active ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground"}`}>
+                      {g.active ? "Active" : "Inactive"}
+                    </button>
+                    <button onClick={() => handleCompatDelete(g.id)} className="text-muted-foreground hover:text-destructive p-1.5"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ===================== COD ESCROW TAB ===================== */}
+        {tab === "cod" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-heading font-bold text-xl uppercase tracking-wide flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-primary" /> Cash-on-Delivery Escrow
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1 font-mono">Set a commitment fee for high-value CoD orders to prevent fraud.</p>
+              </div>
+              <button onClick={handleCodSave} disabled={codSaving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-black font-mono text-sm uppercase font-bold rounded-sm hover:bg-primary/90 transition-all disabled:opacity-50">
+                {codSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Settings
+              </button>
+            </div>
+            {codLoading ? (
+              <div className="flex items-center justify-center h-32 text-muted-foreground"><Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading…</div>
+            ) : (
+              <div className="space-y-5 max-w-lg">
+                <div className="bg-card border border-border rounded-sm p-5 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono font-bold uppercase tracking-wide text-sm">CoD Escrow Enabled</p>
+                      <p className="text-muted-foreground text-xs mt-1">When enabled, high-value CoD orders will require a digital commitment fee.</p>
+                    </div>
+                    <button
+                      onClick={() => setCodSettings(s => ({ ...s, enabled: !s.enabled }))}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-sm font-mono text-xs uppercase font-bold border transition-all ${codSettings.enabled ? "bg-primary/10 border-primary text-primary" : "bg-muted border-border text-muted-foreground"}`}
+                    >
+                      {codSettings.enabled ? <><Eye className="w-4 h-4" /> Enabled</> : <><EyeOff className="w-4 h-4" /> Disabled</>}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">High-value threshold ($)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary"
+                        value={codSettings.highValueThreshold}
+                        onChange={e => setCodSettings(s => ({ ...s, highValueThreshold: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-mono text-xs uppercase text-muted-foreground mb-1.5">Commitment fee (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        className="w-full bg-background border border-border rounded-sm px-3 py-2 font-mono text-sm focus:outline-none focus:border-primary"
+                        value={codSettings.commitmentFeePct}
+                        onChange={e => setCodSettings(s => ({ ...s, commitmentFeePct: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                  </div>
+                  {codSettings.enabled && (
+                    <div className="border border-amber-400/30 bg-amber-400/5 rounded-sm p-3 font-mono text-xs text-muted-foreground">
+                      Orders delivered via CoD above ${codSettings.highValueThreshold.toLocaleString()} will display a {codSettings.commitmentFeePct}% refundable commitment fee at checkout.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
