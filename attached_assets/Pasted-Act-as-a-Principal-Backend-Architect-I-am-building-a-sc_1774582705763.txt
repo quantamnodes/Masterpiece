@@ -1,0 +1,45 @@
+Act as a Principal Backend Architect. I am building a scalable, provider-agnostic SaaS platform. I need you to implement the backend "Universal Switchboard" architecture using the Factory/Strategy pattern.
+
+The Stack: [Insert your exact framework here, e.g., Next.js 14 App Router, Node.js]
+
+Core Architectural Rule: Do NOT hardcode any specific database or payment logic into the main API routes. The backend must route through a "Service Layer" reading from the .env file.
+
+Please generate the complete folder structure and production-ready code for Phase 1 of this project:
+
+1. The Environment Configuration (.env.example):
+
+Create a template .env file with ACTIVE_DATABASE (options: 'supabase', 'mongodb', 'firebase', 'postgresql') and ACTIVE_PAYMENT (options: 'stripe', 'amarpay', 'lemonsqueezy', 'paypal', 'sslcommerz').
+
+Include all necessary placeholder variables for the API keys, secrets, and webhook signing secrets for EVERY provider listed below.
+
+2. The Database Service Layer (services/db/):
+
+Create adapter files: supabaseAdapter.js, mongoAdapter.js, firebaseAdapter.js, and postgresAdapter.js.
+
+Create a main switchboard: dbService.js that exports getDbAdapter() based on process.env.ACTIVE_DATABASE.
+
+Every adapter must implement these exact async methods (they can be empty shells logging to console for now):
+
+saveTransactionIntent(userEmail, amount): Logs the attempt before payment.
+
+grantUserAccess(userEmail, transactionId): Upgrades the user's account after successful payment.
+
+3. The Payment Service Layer (services/payment/):
+
+Create adapter files: stripeAdapter.js, amarpayAdapter.js, lemonAdapter.js, paypalAdapter.js, and sslcommerzAdapter.js.
+
+Create a main switchboard: paymentService.js that exports getPaymentAdapter() based on process.env.ACTIVE_PAYMENT.
+
+Every adapter must implement these exact async methods (they can be empty shells logging to console for now):
+
+createCheckoutSession(amount, currency, userEmail): Returns a checkout URL.
+
+verifyWebhook(requestBody, signatureHeader): Verifies the cryptographic signature and returns: { status: 'success' | 'failed', transactionId, userEmail }.
+
+4. The Universal API Routes:
+
+Route 1: /api/checkout (POST): Initializes dbService to save intent, calls paymentService to generate the checkout session, and returns the URL.
+
+Route 2: /api/webhook (POST): Receives the provider ping, passes raw data to paymentService.verifyWebhook(), and IF successful, calls dbService.grantUserAccess().
+
+Please output the complete backend code. If you run out of tokens, stop cleanly so I can ask you to continue. Do not build the frontend yet.
