@@ -34,22 +34,24 @@ const queryClient = new QueryClient({
   },
 });
 
-const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-
 function ScrollToTop() {
   const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   return null;
 }
 
 function AuthInit() {
   const { fetchMe } = useUserStore();
   const { loadRates, detectFromIp } = useLocalizationStore();
+
   useEffect(() => {
     fetchMe();
     loadRates();
     detectFromIp();
   }, [fetchMe, loadRates, detectFromIp]);
+
   return null;
 }
 
@@ -88,12 +90,15 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         {loading && <LoadingScreen onComplete={handleLoadComplete} />}
-        <BrowserRouter basename={base}>
+
+        {/* ✅ FIXED: removed basename */}
+        <BrowserRouter>
           <ScrollToTop />
           <AuthInit />
           <AppRoutes />
           <CompareBar />
         </BrowserRouter>
+
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
