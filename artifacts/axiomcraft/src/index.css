@@ -175,28 +175,13 @@
     color:            hsl(var(--foreground));
   }
 
-  /* ── Global page scrollbar — dark to match the noir theme ── */
+  /* ── Hide the page scrollbar completely — scroll still works ── */
   html {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 240, 255, 0.18) transparent;
+    scrollbar-width: none;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #050505;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: rgba(0, 240, 255, 0.18);
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 240, 255, 0.4);
+    display: none;
   }
 
   /* All headings use the display font */
