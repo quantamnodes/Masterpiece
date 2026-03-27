@@ -215,7 +215,7 @@ export default function GatewaySettings() {
 
   return (
     <Layout>
-      <div className="page-container py-10 space-y-10">
+      <div className="page-container py-14 sm:py-20 space-y-12">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -237,17 +237,17 @@ export default function GatewaySettings() {
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} noValidate>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 xl:gap-10">
           {/* ── DATABASE SECTION ─────────────────────────────── */}
           <section className="rounded-sm border border-border bg-card overflow-hidden">
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-[#09090B]">
+            <div className="flex items-center gap-3 px-6 py-5 border-b border-border bg-[#09090B]">
               <Database className="w-4 h-4 text-primary" />
               <span className="font-display text-sm font-semibold text-foreground uppercase tracking-wider">
                 Database Provider
               </span>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-8 space-y-7">
               {/* Provider picker */}
               <div>
                 <label className={LABEL}>Active Database Provider</label>
@@ -365,14 +365,14 @@ export default function GatewaySettings() {
 
           {/* ── PAYMENT SECTION ──────────────────────────────── */}
           <section className="rounded-sm border border-border bg-card overflow-hidden">
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-[#09090B]">
+            <div className="flex items-center gap-3 px-6 py-5 border-b border-border bg-[#09090B]">
               <CreditCard className="w-4 h-4 text-primary" />
               <span className="font-display text-sm font-semibold text-foreground uppercase tracking-wider">
                 Payment Gateway
               </span>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-8 space-y-7">
               {/* Provider picker */}
               <div>
                 <label className={LABEL}>Active Payment Gateway</label>
@@ -511,7 +511,7 @@ export default function GatewaySettings() {
         </div>
 
         {/* ── SAVE BAR ─────────────────────────────────────── */}
-        <div className="flex items-center justify-between gap-4 px-6 py-4 rounded-sm border border-border bg-card">
+        <div className="flex items-center justify-between gap-6 px-8 py-6 rounded-sm border border-border bg-card">
           <div className="flex items-center gap-3">
             <ShieldCheck className="w-4 h-4 text-primary/60 shrink-0" />
             <p className="font-mono text-xs text-muted-foreground leading-relaxed">
@@ -557,12 +557,12 @@ export default function GatewaySettings() {
 
         {/* ── REFERENCE CARD ───────────────────────────────── */}
         <section className="rounded-sm border border-border bg-card overflow-hidden">
-          <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-[#09090B]">
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-border bg-[#09090B]">
             <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
               .env.example reference
             </span>
           </div>
-          <div className="p-6">
+          <div className="p-8">
             <pre className="font-mono text-xs text-muted-foreground leading-6 overflow-x-auto whitespace-pre">
 {`# Switch providers by changing these two lines:
 ACTIVE_DATABASE=${dbProvider.padEnd(12)}  # postgresql | supabase | mongodb | firebase

@@ -31,7 +31,6 @@ import { useCartManager } from "@/hooks/use-cart-manager";
 import { useUserStore, TIER_CONFIG, isOwner, isManager, type Tier } from "@/store/user-store";
 import { SearchModal } from "@/components/nav/SearchModal";
 import { MobileMenu  } from "@/components/nav/MobileMenu";
-import { CurrencySelector } from "@/components/CurrencySelector";
 
 /* ─── NAVIGATION DATA ────────────────────────────────────────────────────── */
 
@@ -385,11 +384,6 @@ export function Navbar() {
               >
                 <Search className="w-5 h-5" />
               </button>
-
-              {/* Currency selector */}
-              <div className="hidden md:block">
-                <CurrencySelector />
-              </div>
 
               {/* Deals badge */}
               <Link to="/deals" className="navbar-deals-badge">

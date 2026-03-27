@@ -1047,3 +1047,31 @@
 .loading-screen-logo-wordmark {
   letter-spacing: -0.02em;
 }
+
+/* ==========================================================================
+  19. SCROLL REVEAL ANIMATIONS
+   Global fade-up animation triggered by IntersectionObserver in Layout.tsx.
+   Automatically applied to all direct children of .page-container.
+   ========================================================================== */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-reveal].in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
